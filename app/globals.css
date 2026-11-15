@@ -1,0 +1,131 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  /* Polices de la charte (chargées dans app/layout.tsx) */
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
+
+  /* Couleurs nommées de la charte : bg-terracotta, text-forest, bg-cream... */
+  --color-terracotta: var(--terracotta);
+  --color-terracotta-dark: var(--terracotta-dark);
+  --color-forest: var(--forest);
+  --color-forest-dark: var(--forest-dark);
+  --color-gold: var(--gold);
+  --color-gold-dark: var(--gold-dark);
+  --color-cream: var(--cream);
+  --color-sand: var(--sand);
+  --color-ink: var(--ink);
+
+  /* Ombres chaudes et légères */
+  --shadow-card: 0 2px 12px rgba(33, 25, 21, 0.06);
+  --shadow-card-hover: 0 10px 30px rgba(33, 25, 21, 0.12);
+  --shadow-float: 0 20px 50px rgba(33, 25, 21, 0.18);
+
+  /* Couleurs shadcn/ui */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Charte Invitora (voir BRAND.md) */
+  --terracotta: #c0572b;
+  --terracotta-dark: #a94a22;
+  --forest: #1f4d3a;
+  --forest-dark: #183d2e;
+  --gold: #d9a441;
+  --gold-dark: #c8932f;
+  --cream: #faf5ec;
+  --sand: #f2e8d5;
+  --ink: #211915;
+
+  /* Variables shadcn/ui reliées à la charte */
+  --background: var(--cream);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--terracotta);
+  --primary-foreground: var(--cream);
+  --secondary: var(--sand);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sand);
+  --muted-foreground: color-mix(in srgb, var(--ink) 60%, transparent);
+  --accent: var(--sand);
+  --accent-foreground: var(--ink);
+  --destructive: #b3261e;
+  --border: color-mix(in srgb, var(--ink) 10%, transparent);
+  --input: color-mix(in srgb, var(--ink) 15%, transparent);
+  --ring: var(--terracotta);
+  --chart-1: var(--terracotta);
+  --chart-2: var(--forest);
+  --chart-3: var(--gold);
+  --chart-4: var(--sand);
+  --chart-5: var(--ink);
+  --radius: 1rem;
+  --sidebar: var(--cream);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--terracotta);
+  --sidebar-primary-foreground: var(--cream);
+  --sidebar-accent: var(--sand);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--terracotta);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+}
