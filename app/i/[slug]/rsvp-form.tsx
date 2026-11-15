@@ -14,8 +14,13 @@ const CHOICES: { id: RsvpResponse; label: string }[] = [
   { id: "no", label: "Je ne pourrai pas venir" },
 ];
 
-export function RsvpForm({ slug, deadline }: { slug: string; deadline?: string }) {
-  const [state, action] = useActionState<ActionState, FormData>(submitRsvp, null);
+/** En mode démonstration (page /exemple), rien n'est enregistré. */
+async function demoSubmit(): Promise<ActionState> {
+  return { ok: true, message: "Ceci est un exemple : dans une vraie invitation, l'organisateur reçoit votre réponse en temps réel." };
+}
+
+export function RsvpForm({ slug, deadline, demo = false }: { slug: string; deadline?: string; demo?: boolean }) {
+  const [state, action] = useActionState<ActionState, FormData>(demo ? demoSubmit : submitRsvp, null);
   const [response, setResponse] = useState<RsvpResponse | null>(null);
   const err = state?.fieldErrors ?? {};
 
