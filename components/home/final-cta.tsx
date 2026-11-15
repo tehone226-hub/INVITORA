@@ -3,7 +3,7 @@ import { sampleContent, siteConfig } from "@/config/site";
 import { THEMES } from "@/config/themes";
 import { ButtonLink } from "@/components/button-link";
 
-export function FinalCta() {
+export function FinalCta({ showSamples }: { showSamples: boolean }) {
   return (
     <section className="mx-auto w-full max-w-[1180px] px-5 py-16 lg:py-20">
       <div className="relative mx-auto max-w-[900px] overflow-hidden rounded-[32px] bg-terracotta text-cream shadow-card-hover">
@@ -23,7 +23,7 @@ export function FinalCta() {
           <div>
             <h2 className="text-2xl font-semibold sm:text-[30px]">Prêt à inviter en 30 secondes ?</h2>
             <p className="mt-2 max-w-md text-[15px] text-cream/85">
-              {siteConfig.showSampleContent
+              {showSamples
                 ? `Rejoignez ${sampleContent.organizersCount} organisateurs conquis en Afrique de l'Ouest.`
                 : "Créez votre invitation, partagez-la sur WhatsApp et suivez vos invités."}
             </p>

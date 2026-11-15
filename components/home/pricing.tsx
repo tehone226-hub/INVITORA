@@ -6,7 +6,7 @@ import { PaymentBadges } from "@/components/payment-badges";
 import { SectionHeading } from "@/components/section-heading";
 import { cn } from "@/lib/utils";
 
-export function Pricing() {
+export function Pricing({ showSamples }: { showSamples: boolean }) {
   return (
     <section
       id="tarifs"
@@ -35,7 +35,7 @@ export function Pricing() {
             >
               {featured && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gold px-3 py-1 text-xs font-bold whitespace-nowrap text-forest">
-                  {siteConfig.showSampleContent ? "Le plus choisi" : "Recommandé"}
+                  {showSamples ? "Le plus choisi" : "Recommandé"}
                 </span>
               )}
 

@@ -2,9 +2,8 @@
  * Réglages généraux du site.
  *
  * RÈGLE 7 de CLAUDE.md : pas de faux chiffres ni de faux témoignages en production.
- * Les statistiques et avis de la maquette sont des EXEMPLES. Ils ne s'affichent
- * que si `showSampleContent` vaut `true` (par exemple pour une démonstration).
- * Laisser à `false` tant qu'on n'a pas de vrais chiffres et de vrais avis.
+ * L'affichage des contenus d'exemple se règle dans l'administration
+ * (/admin/reglages, table app_settings) ; il est désactivé par défaut.
  */
 export const siteConfig = {
   name: "Invitora",
@@ -12,9 +11,6 @@ export const siteConfig = {
     "Créez votre invitation digitale en 30 secondes, partagez-la sur WhatsApp et suivez vos invités en temps réel.",
   copyrightYear: 2026,
   city: "Ouagadougou",
-
-  /** Afficher les chiffres et témoignages d'exemple de la maquette */
-  showSampleContent: false,
 
   nav: [
     { label: "Modèles", href: "/#modeles" },
@@ -33,7 +29,7 @@ export const siteConfig = {
 
 /**
  * Contenus d'EXEMPLE (maquette). Affichés uniquement si
- * `siteConfig.showSampleContent` est `true`. Ce ne sont pas de vrais chiffres.
+ * le réglage « contenus d'exemple » est activé dans l'administration. Ce ne sont pas de vrais chiffres.
  */
 export const sampleContent = {
   heroBadge: "N°1 des invitations digitales en Afrique de l'Ouest",

@@ -3,7 +3,7 @@ import { sampleContent } from "@/config/site";
 
 /**
  * Témoignages d'EXEMPLE (maquette). La page ne l'affiche que si
- * `siteConfig.showSampleContent` vaut `true` (règle 7 de CLAUDE.md).
+ * le réglage « contenus d'exemple » est activé dans l'administration (règle 7).
  */
 export function Testimonials() {
   return (

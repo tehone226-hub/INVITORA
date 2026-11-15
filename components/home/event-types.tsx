@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Baby, Briefcase, Cake, Flower2, Heart, type LucideIcon } from "lucide-react";
 import { eventTypes, type EventIcon } from "@/config/home";
-import { sampleContent, siteConfig } from "@/config/site";
+import { sampleContent } from "@/config/site";
 import { SectionHeading } from "@/components/section-heading";
 
 const icons: Record<EventIcon, LucideIcon> = {
@@ -12,7 +12,7 @@ const icons: Record<EventIcon, LucideIcon> = {
   briefcase: Briefcase,
 };
 
-export function EventTypes() {
+export function EventTypes({ showSamples }: { showSamples: boolean }) {
   return (
     <section aria-labelledby="evenements-titre" className="mx-auto w-full max-w-[1180px] px-5 pb-16 lg:pb-24">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -26,7 +26,7 @@ export function EventTypes() {
           href="/#modeles"
           className="text-sm font-bold text-terracotta underline underline-offset-4 hover:text-terracotta-dark"
         >
-          {siteConfig.showSampleContent
+          {showSamples
             ? `Voir les ${sampleContent.templatesCount} modèles`
             : "Voir les modèles"}
         </Link>

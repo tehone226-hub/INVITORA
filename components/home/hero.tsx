@@ -6,8 +6,7 @@ import { heroInvitation } from "@/config/home";
 import { ButtonLink } from "@/components/button-link";
 import { InvitationCard } from "@/components/invitation-card";
 
-export function Hero() {
-  const showSamples = siteConfig.showSampleContent;
+export function Hero({ showSamples }: { showSamples: boolean }) {
 
   return (
     <section className="mx-auto grid w-full max-w-[1180px] items-center gap-12 overflow-x-clip px-5 pt-12 pb-16 lg:grid-cols-[1.15fr_1fr] lg:gap-8 lg:pt-20 lg:pb-24">

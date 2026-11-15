@@ -1,9 +1,30 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Menu } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { ButtonLink } from "@/components/button-link";
 import { Logo } from "@/components/logo";
 import { WovenBand } from "@/components/woven-band";
+import { getCurrentUser } from "@/lib/auth";
+
+/** Bouton de compte : lit la session (zone dynamique, le reste de l'en-tête est statique). */
+async function AccountButton() {
+  const user = await getCurrentUser();
+  if (!user) return <LoginButton />;
+  return (
+    <ButtonLink href="/tableau-de-bord" variant="outline" size="sm" className="hidden sm:inline-flex">
+      Mon espace
+    </ButtonLink>
+  );
+}
+
+function LoginButton() {
+  return (
+    <ButtonLink href={siteConfig.routes.login} variant="outline" size="sm" className="hidden sm:inline-flex">
+      Se connecter
+    </ButtonLink>
+  );
+}
 
 export function SiteHeader() {
   const { nav, routes } = siteConfig;
@@ -28,9 +49,9 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <ButtonLink href={routes.login} variant="outline" size="sm" className="hidden sm:inline-flex">
-            Se connecter
-          </ButtonLink>
+          <Suspense fallback={<LoginButton />}>
+            <AccountButton />
+          </Suspense>
           <ButtonLink href={routes.create} size="sm">
             Créer mon invitation
           </ButtonLink>
@@ -53,8 +74,8 @@ export function SiteHeader() {
                   </li>
                 ))}
                 <li className="sm:hidden">
-                  <Link href={routes.login} className="block rounded-xl px-3 py-2.5 hover:bg-sand">
-                    Se connecter
+                  <Link href="/tableau-de-bord" className="block rounded-xl px-3 py-2.5 hover:bg-sand">
+                    Mon espace / Se connecter
                   </Link>
                 </li>
               </ul>
