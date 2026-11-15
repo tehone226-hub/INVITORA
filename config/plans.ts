@@ -121,12 +121,16 @@ export const PLAN_LIST: Plan[] = [
   PLANS.prestige,
 ];
 
-/** « 4 900 FCFA » (espace insécable entre les milliers et avant la devise) */
-export function formatPrice(amount: number): string {
-  const digits = Math.round(amount)
+/** « 4 900 » (espace insécable entre les milliers) */
+export function formatAmount(amount: number): string {
+  return Math.round(amount)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return `${digits} ${CURRENCY}`;
+}
+
+/** « 4 900 FCFA » (espace insécable entre les milliers et avant la devise) */
+export function formatPrice(amount: number): string {
+  return `${formatAmount(amount)} ${CURRENCY}`;
 }
 
 /** Montant en chaîne décimale pour SasPay : 4900 -> "4900.00" */

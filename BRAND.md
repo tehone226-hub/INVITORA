@@ -42,7 +42,7 @@ Règles :
 - Texte secondaire : 14 px.
 - Étiquette (« POUR CHAQUE MOMENT DE VIE ») : 12 px, Nunito 700, majuscules, espacement des lettres 0,12 em, couleur `terracotta` (ou `gold` sur fond vert).
 
-Mot clé mis en valeur dans un titre : Fraunces italique, couleur `gold`, souligné d'un trait ondulé `terracotta`.
+Mot clé mis en valeur dans un titre (ex. « 30 secondes ») : même police, couleur `terracotta`, souligné d'un trait courbe `gold` dessiné en SVG.
 
 ## 4. Formes
 

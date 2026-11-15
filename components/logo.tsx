@@ -6,7 +6,7 @@ export function LogoMark({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex size-10 items-center justify-center rounded-[14px] bg-forest font-heading text-2xl font-bold leading-none text-cream",
+        "inline-flex size-9 items-center justify-center rounded-[12px] bg-forest font-heading text-xl leading-none font-bold text-cream",
         className,
       )}
     >
@@ -15,15 +15,23 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** Logo complet : signe + « Invitora » en serif. */
-export function Logo({ className }: { className?: string }) {
+/** Logo complet : signe + « Invitora » en serif. `tone="dark"` : sur fond vert. */
+export function Logo({
+  className,
+  tone = "light",
+}: {
+  className?: string;
+  tone?: "light" | "dark";
+}) {
   return (
-    <span
-      className={cn("inline-flex items-center gap-2.5", className)}
-      aria-label="Invitora"
-    >
-      <LogoMark />
-      <span className="font-heading text-2xl font-semibold text-ink">
+    <span className={cn("inline-flex items-center gap-2.5", className)}>
+      <LogoMark className={tone === "dark" ? "bg-cream text-forest" : undefined} />
+      <span
+        className={cn(
+          "font-heading text-[22px] font-semibold",
+          tone === "dark" ? "text-cream" : "text-ink",
+        )}
+      >
         Invitora
       </span>
     </span>
