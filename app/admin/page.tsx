@@ -39,6 +39,12 @@ async function Overview() {
     <div className="space-y-6">
       <h1 className="text-[30px] leading-tight font-semibold">Vue d&apos;ensemble</h1>
 
+      {process.env.SASPAY_TEST_AMOUNT_XOF && (
+        <Notice tone="error" title="Mode test de paiement actif">
+          Tous les paiements sont facturés {process.env.SASPAY_TEST_AMOUNT_XOF} FCFA (variable SASPAY_TEST_AMOUNT_XOF). Retirez-la avant d&apos;ouvrir au public.
+        </Notice>
+      )}
+
       {missing.length > 0 && (
         <Notice tone="warning" title="Services non configurés">
           {missing.join(", ")}. Voir <Link href="/admin/reglages" className="font-bold underline">Réglages</Link>.

@@ -8,7 +8,7 @@ import type { ThemeId } from "@/config/themes";
 import { MAX_IMAGE_GENERATIONS, generateBackground } from "@/lib/ai/invitation-image";
 import { generateInvitationText } from "@/lib/ai/invitation-text";
 import { getCurrentUser } from "@/lib/auth";
-import { refreshPaymentStatus } from "@/lib/billing";
+import { SESSION_LIFETIME_HOURS, refreshPaymentStatus } from "@/lib/billing";
 import { publicEnv } from "@/lib/env";
 import { features } from "@/lib/env-server";
 import { eventTypeLabel, isEventType, isLanguage } from "@/lib/event-types";
@@ -20,6 +20,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { ActionState, EventRow } from "@/lib/types";
 
 const THEMES: ThemeId[] = ["faso-dan-fani", "bogolan", "tiebele", "indigo"];
+/** Nombre maximal d'images IA par utilisateur et par jour (maîtrise des coûts). */
+const DAILY_IMAGE_LIMIT = 6;
 
 /** Événement accessible à l'utilisateur connecté (RLS : propriétaire ou admin). */
 async function loadEvent(id: string) {
@@ -27,8 +29,13 @@ async function loadEvent(id: string) {
   if (!user || !/^[0-9a-f-]{36}$/i.test(id)) return null;
   const supabase = await createClient();
   const { data } = await supabase.from("events").select(EVENT_COLUMNS).eq("id", id).maybeSingle<EventRow>();
-  return data ? { user, event: data, supabase } : null;
+  // Défense en profondeur : la RLS filtre déjà, on revérifie le propriétaire avant toute action serveur.
+  if (!data || (data.owner_id !== user.id && !user.isAdmin)) return null;
+  return { user, event: data, supabase };
 }
+
+/** Une modification qui n'a touché aucune ligne n'est pas un succès. */
+const touched = (res: { data: unknown[] | null; error: unknown }) => !res.error && (res.data?.length ?? 0) > 0;
 
 const refresh = (e: EventRow) => updateTag(eventTag(e.slug));
 
@@ -119,11 +126,14 @@ export async function updateEvent(id: string, _prev: ActionState, formData: Form
 export async function publishEvent(id: string): Promise<ActionState> {
   const ctx = await loadEvent(id);
   if (!ctx) return { ok: false, message: "Invitation introuvable." };
+  if (ctx.event.blocked_at) {
+    return { ok: false, message: "Cette invitation a été suspendue par l'administration. Contactez le support." };
+  }
   if (!isPlanActive(ctx.event)) {
     return { ok: false, message: "Choisissez d'abord une formule pour activer le lien de votre invitation." };
   }
-  const { error } = await ctx.supabase.from("events").update({ status: "published" }).eq("id", id);
-  if (error) return { ok: false, message: "La publication a échoué. Réessayez." };
+  const res = await ctx.supabase.from("events").update({ status: "published" }).eq("id", id).select("id");
+  if (!touched(res)) return { ok: false, message: "La publication a échoué. Réessayez." };
   refresh(ctx.event);
   return { ok: true, message: "Votre invitation est en ligne. Partagez le lien à vos invités." };
 }
@@ -131,8 +141,8 @@ export async function publishEvent(id: string): Promise<ActionState> {
 export async function unpublishEvent(id: string): Promise<ActionState> {
   const ctx = await loadEvent(id);
   if (!ctx) return { ok: false, message: "Invitation introuvable." };
-  const { error } = await ctx.supabase.from("events").update({ status: "draft" }).eq("id", id);
-  if (error) return { ok: false, message: "L'opération a échoué. Réessayez." };
+  const res = await ctx.supabase.from("events").update({ status: "draft" }).eq("id", id).select("id");
+  if (!touched(res)) return { ok: false, message: "L'opération a échoué. Réessayez." };
   refresh(ctx.event);
   return { ok: true, message: "Le lien est désactivé : vos invités ne peuvent plus ouvrir l'invitation." };
 }
@@ -190,6 +200,17 @@ export async function generateCover(id: string): Promise<ActionState> {
   }
 
   const admin = createAdminClient();
+  // Plafond quotidien par utilisateur (maîtrise des coûts Gemini)
+  const since = new Date(Date.now() - 24 * 3600_000).toISOString();
+  const { count: usedToday } = await admin
+    .from("ai_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", ctx.user.id)
+    .eq("kind", "image")
+    .gte("created_at", since);
+  if ((usedToday ?? 0) >= DAILY_IMAGE_LIMIT) {
+    return { ok: false, message: `Vous avez atteint la limite de ${DAILY_IMAGE_LIMIT} créations d'image par jour. Réessayez demain.` };
+  }
   // On réserve la génération AVANT l'appel (évite de dépasser la limite en cliquant plusieurs fois).
   const { data: reserved } = await admin
     .from("events")
@@ -206,6 +227,8 @@ export async function generateCover(id: string): Promise<ActionState> {
     .insert({ user_id: ctx.user.id, event_id: id, kind: "image", model: image?.model ?? "aucune", ok: Boolean(image) });
 
   if (!image) {
+    // Une tentative qui échoue ne consomme pas l'une des 3 créations de l'invitation.
+    await admin.from("events").update({ image_generations: e.image_generations }).eq("id", id).eq("image_generations", e.image_generations + 1);
     return { ok: false, message: "L'image n'a pas pu être créée. Le fond de l'étoffe choisie reste utilisé. Réessayez plus tard." };
   }
 
@@ -239,7 +262,7 @@ export async function resetCover(id: string): Promise<ActionState> {
 export async function startCheckout(id: string, plan: PlanId): Promise<ActionState> {
   const ctx = await loadEvent(id);
   if (!ctx) return { ok: false, message: "Invitation introuvable." };
-  if (!PLANS[plan]) return { ok: false, message: "Formule inconnue." };
+  if (!Object.hasOwn(PLANS, plan)) return { ok: false, message: "Formule inconnue." };
   if (!features.payments || !features.serviceRole) {
     return { ok: false, message: "Le paiement en ligne n'est pas encore activé. Revenez bientôt." };
   }
@@ -247,6 +270,33 @@ export async function startCheckout(id: string, plan: PlanId): Promise<ActionSta
 
   const admin = createAdminClient();
   const amount = saspayAmount(PLANS[plan].price);
+
+  // Un paiement déjà ouvert pour la même invitation et la même formule est repris, pas dupliqué.
+  const recent = new Date(Date.now() - (SESSION_LIFETIME_HOURS * 3600_000) / 2).toISOString();
+  const { data: existing } = await admin
+    .from("payments")
+    .select("id, checkout_url")
+    .eq("event_id", id)
+    .eq("user_id", ctx.user.id)
+    .eq("plan", plan)
+    .eq("amount", amount)
+    .eq("status", "pending")
+    .not("checkout_url", "is", null)
+    .gte("created_at", recent)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string; checkout_url: string }>();
+  if (existing) redirect(existing.checkout_url);
+
+  // Garde-fou : pas plus de 5 paiements ouverts par heure et par utilisateur
+  const { count: openCount } = await admin
+    .from("payments")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", ctx.user.id)
+    .eq("status", "pending")
+    .gte("created_at", new Date(Date.now() - 3600_000).toISOString());
+  if ((openCount ?? 0) >= 5) return { ok: false, message: "Trop de paiements ouverts en peu de temps. Patientez une heure ou terminez le paiement en cours." };
+
   const { data: payment, error } = await admin
     .from("payments")
     .insert({ event_id: id, user_id: ctx.user.id, plan, amount, currency: "XOF", status: "pending" })
@@ -264,8 +314,14 @@ export async function startCheckout(id: string, plan: PlanId): Promise<ActionSta
       customerPhone: ctx.user.profile?.phone ?? undefined,
       returnUrl: `${publicEnv.siteUrl}/paiement/retour?paiement=${payment.id}`,
       metadata: { payment_id: payment.id, event_id: id, plan },
+      expiresInHours: SESSION_LIFETIME_HOURS,
     });
-    await admin.from("payments").update({ saspay_session_id: session.id, checkout_url: session.checkout_url }).eq("id", payment.id);
+    // Sans l'identifiant de session, le paiement ne pourrait jamais être rapproché : on le vérifie.
+    const { error: linkErr } = await admin
+      .from("payments")
+      .update({ saspay_session_id: session.id, checkout_url: session.checkout_url })
+      .eq("id", payment.id);
+    if (linkErr) throw linkErr;
     checkoutUrl = session.checkout_url;
   } catch (e) {
     await admin.from("payments").update({ status: "failed" }).eq("id", payment.id);

@@ -63,7 +63,9 @@ export function RsvpLive({
         const row = payload.new as RsvpRow;
         setRows((prev) => (prev.some((r) => r.id === row.id) ? prev : [row, ...prev]));
       })
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` }, (payload) => {
+      // Les suppressions ne peuvent pas être filtrées par Realtime : on retire par identifiant
+      // (sans effet si la ligne n'est pas dans la liste affichée).
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "rsvps" }, (payload) => {
         const old = payload.old as Partial<RsvpRow>;
         setRows((prev) => prev.filter((r) => r.id !== old.id));
       })

@@ -1,5 +1,5 @@
 /**
- * Vérifie le schéma et les règles de sécurité (RLS) de la migration Supabase
+ * Vérifie le schéma et les règles de sécurité (RLS, fonctions) de la migration Supabase
  * sur un vrai PostgreSQL local (PGlite), avec une simulation minimale de
  * l'environnement Supabase (schémas auth et storage, rôles anon/authenticated).
  */
@@ -29,11 +29,10 @@ const SUPABASE_STUB = `
 
   create schema storage;
   grant usage on schema storage to anon, authenticated, service_role;
-  create table storage.buckets (id text primary key, name text, public boolean);
+  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
   create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
   alter table storage.objects enable row level security;
-  create function storage.foldername(name text) returns text[] language sql immutable as
-    $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+  grant select on all tables in schema storage to service_role;
 
   create publication supabase_realtime;
 `;
@@ -51,6 +50,9 @@ async function as<T = Record<string, unknown>>(who: string | null | "service", s
     await db.exec("reset role;");
   }
 }
+
+const rsvp = (slug: string, name = "Moussa", response = "yes", guests = 1) =>
+  as(null, "select public.submit_rsvp($1, $2, '', $3, $4, '')", [slug, name, response, guests]);
 
 async function createEvent(owner: string, slug: string) {
   const rows = await as<{ id: string }>(
@@ -78,7 +80,6 @@ beforeAll(async () => {
     "utf8",
   );
   await db.exec(migration);
-  // Trois comptes : le trigger doit créer les profils
   await db.exec(`
     insert into auth.users (id, email, raw_user_meta_data) values
       ('${A}', 'a@test.bf', '{"full_name":"Awa"}'),
@@ -110,12 +111,12 @@ describe("profils", () => {
   });
 });
 
-describe("événements", () => {
+describe("événements : cloisonnement", () => {
   it("un organisateur crée un événement, invisible des autres et du public", async () => {
     const id = await createEvent(A, "brouillon-aaaa-0001");
     expect(await as(A, "select id from public.events where id = $1", [id])).toHaveLength(1);
     expect(await as(B, "select id from public.events where id = $1", [id])).toHaveLength(0);
-    expect(await as(null, "select id from public.events where id = $1", [id])).toHaveLength(0);
+    await expect(as(null, "select id from public.events where id = $1", [id])).rejects.toThrow();
   });
 
   it("l'organisateur ne peut pas s'attribuer une formule", async () => {
@@ -125,19 +126,14 @@ describe("événements", () => {
     ).rejects.toThrow();
   });
 
-  it("publié sans formule payée : toujours invisible du public", async () => {
-    const id = await createEvent(A, "nonpaye-aaaa-0003");
-    await as(A, "update public.events set status = 'published' where id = $1", [id]);
-    expect(await as(null, "select id from public.events where id = $1", [id])).toHaveLength(0);
-  });
-
-  it("publié et payé : visible du public", async () => {
+  it("H1 : un événement publié et payé n'est PAS listable par un visiteur ni par un autre compte", async () => {
     const id = await createEvent(A, "public-aaaa-0004");
     await activate(id, null);
-    expect(await as(null, "select id from public.events where id = $1", [id])).toHaveLength(1);
+    await expect(as(null, "select slug from public.events")).rejects.toThrow();
+    expect(await as(B, "select id from public.events where id = $1", [id])).toHaveLength(0);
   });
 
-  it("un autre utilisateur ne peut ni modifier ni supprimer", async () => {
+  it("H2 : un autre utilisateur ne peut ni modifier ni supprimer", async () => {
     const id = await createEvent(A, "protege-aaaa-0005");
     await as(B, "update public.events set title = 'Piraté' where id = $1", [id]);
     await as(B, "delete from public.events where id = $1", [id]);
@@ -147,51 +143,160 @@ describe("événements", () => {
 
   it("l'administrateur voit tous les événements", async () => {
     const rows = await as(ADMIN, "select count(*)::int as n from public.events");
-    expect((rows[0] as { n: number }).n).toBeGreaterThanOrEqual(5);
+    expect((rows[0] as { n: number }).n).toBeGreaterThanOrEqual(4);
   });
 
   it("le slug doit faire au moins 10 caractères", async () => {
     await expect(createEvent(A, "court")).rejects.toThrow();
   });
+
+  it("L2 : contraintes en base (lien https, programme en liste, image https)", async () => {
+    const id = await createEvent(A, "contraintes-aaaa-0020");
+    await expect(as(A, "update public.events set maps_url = 'javascript:alert(1)' where id = $1", [id])).rejects.toThrow();
+    await expect(as(A, "update public.events set maps_url = 'http://exemple.bf' where id = $1", [id])).rejects.toThrow();
+    await expect(as(A, `update public.events set program = '"texte"'::jsonb where id = $1`, [id])).rejects.toThrow();
+    await expect(as(A, "update public.events set cover_image_url = 'http://tracker.exemple/p.gif' where id = $1", [id])).rejects.toThrow();
+    await as(A, "update public.events set maps_url = 'https://maps.app.goo.gl/abc' where id = $1", [id]);
+  });
 });
 
-describe("réponses RSVP", () => {
-  it("le public répond à un événement publié et payé, sans pouvoir lire les réponses", async () => {
+describe("page invité : get_public_event", () => {
+  it("renvoie l'invitation publiée et payée, sans données internes", async () => {
+    const id = await createEvent(A, "invite-aaaa-0030");
+    await activate(id, null);
+    const rows = await as<Record<string, unknown>>(null, "select * from public.get_public_event('invite-aaaa-0030')");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].title).toBe("Mariage test");
+    expect(Object.keys(rows[0])).not.toContain("owner_id");
+    expect(Object.keys(rows[0])).not.toContain("image_generations");
+    expect(Object.keys(rows[0])).not.toContain("blocked_at");
+  });
+
+  it("ne renvoie rien pour un brouillon, un événement non payé ou un slug inconnu", async () => {
+    await createEvent(A, "brouillon-aaaa-0031");
+    const paid = await createEvent(A, "nonpaye-aaaa-0032");
+    await as(A, "update public.events set status = 'published' where id = $1", [paid]);
+    for (const slug of ["brouillon-aaaa-0031", "nonpaye-aaaa-0032", "inconnu-aaaa-0000"]) {
+      expect(await as(null, "select * from public.get_public_event($1)", [slug])).toHaveLength(0);
+    }
+  });
+
+  it("M6 : une invitation suspendue par l'administration n'est plus publique, et l'organisateur ne peut pas la rétablir", async () => {
+    const id = await createEvent(A, "suspendu-aaaa-0033");
+    await activate(id, null);
+    expect(await as(null, "select * from public.get_public_event('suspendu-aaaa-0033')")).toHaveLength(1);
+    await as("service", "update public.events set status = 'draft', blocked_at = now() where id = $1", [id]);
+    // L'organisateur republie : toujours invisible, et blocked_at n'est pas modifiable par lui
+    await as(A, "update public.events set status = 'published' where id = $1", [id]);
+    await expect(as(A, "update public.events set blocked_at = null where id = $1", [id])).rejects.toThrow();
+    expect(await as(null, "select * from public.get_public_event('suspendu-aaaa-0033')")).toHaveLength(0);
+  });
+});
+
+describe("réponses RSVP : submit_rsvp", () => {
+  it("un visiteur répond à un événement publié et payé, sans pouvoir lire les réponses", async () => {
     const id = await createEvent(A, "rsvp-aaaa-0006");
     await activate(id, null);
-    await as(null, "insert into public.rsvps (event_id, name, response) values ($1, 'Moussa', 'yes')", [id]);
-    expect(await as(null, "select id from public.rsvps where event_id = $1", [id])).toHaveLength(0);
+    await rsvp("rsvp-aaaa-0006");
+    expect(await as(null, "select id from public.rsvps where event_id = $1", [id])).toHaveLength(0); // la RLS filtre tout
     expect(await as(A, "select name from public.rsvps where event_id = $1", [id])).toEqual([{ name: "Moussa" }]);
     expect(await as(B, "select name from public.rsvps where event_id = $1", [id])).toHaveLength(0);
   });
 
+  it("M5 : l'insertion directe dans rsvps est interdite", async () => {
+    const id = await createEvent(A, "direct-aaaa-0040");
+    await activate(id, null);
+    await expect(as(null, "insert into public.rsvps (event_id, name, response) values ($1, 'X', 'yes')", [id])).rejects.toThrow();
+    await expect(as(B, "insert into public.rsvps (event_id, name, response) values ($1, 'X', 'yes')", [id])).rejects.toThrow();
+  });
+
   it("impossible de répondre à un brouillon", async () => {
-    const id = await createEvent(A, "rsvpbrouillon-0007");
-    await expect(
-      as(null, "insert into public.rsvps (event_id, name, response) values ($1, 'X', 'yes')", [id]),
-    ).rejects.toThrow();
+    await createEvent(A, "rsvpbrouillon-0007");
+    await expect(rsvp("rsvpbrouillon-0007")).rejects.toThrow(/event_unavailable/);
   });
 
   it("la limite d'invités de la formule est respectée", async () => {
     const id = await createEvent(A, "limite-aaaa-0008");
     await activate(id, 2);
-    await as(null, "insert into public.rsvps (event_id, name, response) values ($1, 'Un', 'yes')", [id]);
-    await as(null, "insert into public.rsvps (event_id, name, response) values ($1, 'Deux', 'no')", [id]);
-    await expect(
-      as(null, "insert into public.rsvps (event_id, name, response) values ($1, 'Trois', 'yes')", [id]),
-    ).rejects.toThrow(/guest_limit_reached/);
+    await rsvp("limite-aaaa-0008", "Un");
+    await rsvp("limite-aaaa-0008", "Deux", "no");
+    await expect(rsvp("limite-aaaa-0008", "Trois")).rejects.toThrow(/guest_limit_reached/);
   });
 
-  it("le nombre d'accompagnants est borné", async () => {
+  it("le nombre d'accompagnants est borné à 20", async () => {
     const id = await createEvent(A, "borne-aaaa-0009");
     await activate(id, null);
-    await expect(
-      as(null, "insert into public.rsvps (event_id, name, response, guests_count) values ($1, 'X', 'yes', 99)", [id]),
-    ).rejects.toThrow();
+    await rsvp("borne-aaaa-0009", "Groupe", "yes", 99);
+    const rows = await as<{ guests_count: number }>(A, "select guests_count from public.rsvps where event_id = $1", [id]);
+    expect(rows[0].guests_count).toBe(20);
+  });
+
+  it("la date limite de réponse est appliquée côté base", async () => {
+    const id = await createEvent(A, "echeance-aaaa-0041");
+    await activate(id, null);
+    await as(A, "update public.events set rsvp_deadline = current_date - 1 where id = $1", [id]);
+    await expect(rsvp("echeance-aaaa-0041")).rejects.toThrow(/rsvp_closed/);
+  });
+
+  it("un rythme anormal de réponses est freiné", async () => {
+    const id = await createEvent(A, "rythme-aaaa-0042");
+    await activate(id, null);
+    for (let i = 0; i < 40; i++) await rsvp("rythme-aaaa-0042", `Invité ${i}`);
+    await expect(rsvp("rythme-aaaa-0042", "Trop")).rejects.toThrow(/too_many_requests/);
   });
 });
 
-describe("paiements, webhooks, réglages", () => {
+describe("activation d'une formule : activate_payment", () => {
+  async function pendingPayment(slug: string, plan = "celebration") {
+    const eventId = await createEvent(A, slug);
+    const rows = await as<{ id: string }>(
+      "service",
+      "insert into public.payments (event_id, user_id, plan, amount, status) values ($1, $2, $3, '4900.00', 'pending') returning id",
+      [eventId, A, plan],
+    );
+    return { eventId, paymentId: rows[0].id };
+  }
+
+  it("active la formule dans une seule transaction (3 mois, limite d'invités)", async () => {
+    const { eventId, paymentId } = await pendingPayment("activer-aaaa-0050");
+    const res = await as<{ activate_payment: string | null }>("service", "select public.activate_payment($1, 'tx_50', 500, 3)", [paymentId]);
+    expect(res[0].activate_payment).toBe("activer-aaaa-0050");
+    const ev = await as<{ plan: string; guest_limit: number; ok: boolean }>(
+      "service",
+      "select plan, guest_limit, plan_expires_at > now() + interval '89 days' as ok from public.events where id = $1",
+      [eventId],
+    );
+    expect(ev[0]).toEqual({ plan: "celebration", guest_limit: 500, ok: true });
+    const pay = await as<{ status: string; saspay_transaction_id: string }>("service", "select status, saspay_transaction_id from public.payments where id = $1", [paymentId]);
+    expect(pay[0]).toEqual({ status: "paid", saspay_transaction_id: "tx_50" });
+  });
+
+  it("est idempotent : un second appel ne change rien", async () => {
+    const { eventId, paymentId } = await pendingPayment("idem-aaaa-0051");
+    await as("service", "select public.activate_payment($1, 'tx_51', 500, 3)", [paymentId]);
+    const before = await as<{ plan_expires_at: string }>("service", "select plan_expires_at::text from public.events where id = $1", [eventId]);
+    const again = await as<{ activate_payment: string | null }>("service", "select public.activate_payment($1, 'tx_51', 500, 3)", [paymentId]);
+    expect(again[0].activate_payment).toBeNull();
+    const after = await as<{ plan_expires_at: string }>("service", "select plan_expires_at::text from public.events where id = $1", [eventId]);
+    expect(after).toEqual(before);
+  });
+
+  it("prolonge de 3 mois une formule encore active", async () => {
+    const { eventId, paymentId } = await pendingPayment("prolonge-aaaa-0052");
+    await as("service", "update public.events set plan = 'essentiel', plan_expires_at = now() + interval '30 days' where id = $1", [eventId]);
+    await as("service", "select public.activate_payment($1, 'tx_52', 500, 3)", [paymentId]);
+    const ev = await as<{ ok: boolean }>("service", "select plan_expires_at > now() + interval '118 days' as ok from public.events where id = $1", [eventId]);
+    expect(ev[0].ok).toBe(true);
+  });
+
+  it("n'est pas appelable par un visiteur ni par un utilisateur connecté", async () => {
+    const { paymentId } = await pendingPayment("interdit-aaaa-0053");
+    await expect(as(null, "select public.activate_payment($1, 'tx_x', 500, 3)", [paymentId])).rejects.toThrow();
+    await expect(as(A, "select public.activate_payment($1, 'tx_x', 500, 3)", [paymentId])).rejects.toThrow();
+  });
+});
+
+describe("paiements, webhooks, réglages, stockage", () => {
   it("un utilisateur ne peut pas créer de paiement lui-même", async () => {
     const id = await createEvent(A, "paiement-aaaa-0010");
     await expect(
@@ -202,7 +307,7 @@ describe("paiements, webhooks, réglages", () => {
   it("les webhooks sont invisibles des clients", async () => {
     await as("service", "insert into public.webhook_events (id, event_type, payload) values ('tx_1', 'transaction.success', '{}')");
     expect(await as(A, "select id from public.webhook_events")).toHaveLength(0);
-    expect(await as(null, "select id from public.webhook_events")).toHaveLength(0);
+    await expect(as(null, "select id from public.webhook_events")).resolves.toHaveLength(0);
   });
 
   it("un même webhook ne peut être enregistré qu'une fois", async () => {
@@ -219,5 +324,16 @@ describe("paiements, webhooks, réglages", () => {
     await as(ADMIN, "update public.app_settings set value = 'true' where key = 'show_sample_content'");
     rows = await as(null, "select value from public.app_settings where key = 'show_sample_content'");
     expect(rows[0].value).toBe(true);
+  });
+
+  it("M4 : le stockage n'accepte que des images légères et aucune écriture par les clients", async () => {
+    const rows = await as<{ file_size_limit: string; allowed_mime_types: string[] }>(
+      "service",
+      "select file_size_limit::text, allowed_mime_types from storage.buckets where id = 'invitations'",
+    );
+    expect(Number(rows[0].file_size_limit)).toBeLessThanOrEqual(3 * 1024 * 1024);
+    expect(rows[0].allowed_mime_types).toEqual(["image/png", "image/jpeg", "image/webp"]);
+    const policies = await as<{ policyname: string }>("service", "select policyname from pg_policies where schemaname = 'storage'");
+    expect(policies).toEqual([]);
   });
 });

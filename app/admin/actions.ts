@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidateTag, updateTag } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { PLANS, type PlanId } from "@/config/plans";
 import { requireAdmin } from "@/lib/auth";
 import { adminForceActivation, computeExpiry, refreshPaymentStatus } from "@/lib/billing";
@@ -16,7 +17,11 @@ async function guard() {
   return { admin, db: createAdminClient() };
 }
 
-const fail = (e: unknown): ActionState => ({ ok: false, message: e instanceof Error ? e.message : "Action impossible." });
+const fail = (e: unknown): ActionState => {
+  unstable_rethrow(e); // laisse passer redirect() / notFound()
+  console.error("[admin]", e instanceof Error ? e.message : e);
+  return { ok: false, message: "Action impossible. Réessayez ou consultez les journaux du serveur." };
+};
 
 export async function setUserRole(userId: string, role: "user" | "admin"): Promise<ActionState> {
   try {
@@ -33,7 +38,10 @@ export async function setUserRole(userId: string, role: "user" | "admin"): Promi
 export async function setEventStatus(eventId: string, status: "draft" | "published" | "archived"): Promise<ActionState> {
   try {
     const { db } = await guard();
-    const { data, error } = await db.from("events").update({ status }).eq("id", eventId).select("slug").single<{ slug: string }>();
+    // Dépublier ou archiver par l'administration SUSPEND l'invitation : l'organisateur ne peut pas la remettre en ligne.
+    // Publier lève la suspension.
+    const blocked_at = status === "published" ? null : new Date().toISOString();
+    const { data, error } = await db.from("events").update({ status, blocked_at }).eq("id", eventId).select("slug").single<{ slug: string }>();
     if (error) throw error;
     updateTag(eventTag(data.slug));
     return { ok: true, message: "Statut mis à jour." };
@@ -46,7 +54,7 @@ export async function setEventStatus(eventId: string, status: "draft" | "publish
 export async function grantPlan(eventId: string, plan: PlanId): Promise<ActionState> {
   try {
     const { db } = await guard();
-    if (!PLANS[plan]) return { ok: false, message: "Formule inconnue." };
+    if (!Object.hasOwn(PLANS, plan)) return { ok: false, message: "Formule inconnue." };
     const { data: ev, error: e1 } = await db.from("events").select("slug, plan_expires_at").eq("id", eventId).single<{ slug: string; plan_expires_at: string | null }>();
     if (e1) throw e1;
     const { error } = await db

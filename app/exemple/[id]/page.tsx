@@ -68,6 +68,7 @@ function sampleEvent(id: string): EventRow | null {
     plan_expires_at: null,
     guest_limit: null,
     image_generations: 0,
+    blocked_at: null,
     created_at: "",
     updated_at: "",
   };

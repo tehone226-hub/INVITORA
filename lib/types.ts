@@ -45,6 +45,7 @@ export interface EventRow {
   plan_expires_at: string | null;
   guest_limit: number | null;
   image_generations: number;
+  blocked_at: string | null;
   created_at: string;
   updated_at: string;
 }

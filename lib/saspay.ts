@@ -21,7 +21,7 @@ export class SaspayError extends Error {
   }
 }
 
-async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
+async function call<T>(method: "GET" | "POST", path: string, body?: unknown, timeoutMs = 20_000): Promise<T> {
   if (!serverEnv.saspaySecretKey) throw new SaspayError("SASPAY_SECRET_KEY manquante.", 500, "not_configured");
   const res = await fetch(`${SASPAY_API}${path}`, {
     method,
@@ -32,7 +32,7 @@ async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Pr
     },
     body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const json = (await res.json().catch(() => null)) as
     | { success: true; data: T }
@@ -68,6 +68,8 @@ export function createCheckoutSession(params: {
   customerPhone?: string;
   returnUrl: string;
   metadata: Record<string, string>;
+  /** Durée de vie de la session de paiement */
+  expiresInHours?: number;
 }): Promise<CheckoutSession> {
   return call<CheckoutSession>("POST", "/checkout-sessions/", {
     amount: params.amount,
@@ -79,6 +81,7 @@ export function createCheckoutSession(params: {
     customer_phone: params.customerPhone ?? "",
     return_url: params.returnUrl,
     metadata: params.metadata,
+    ...(params.expiresInHours ? { expires_at: new Date(Date.now() + params.expiresInHours * 3600_000).toISOString() } : {}),
   });
 }
 
@@ -90,8 +93,8 @@ export interface SessionStatus {
 }
 
 /** Statut vérifié auprès de SasPay (qui interroge lui-même l'opérateur). */
-export function getSessionStatus(sessionId: string): Promise<SessionStatus> {
-  return call<SessionStatus>("GET", `/checkout-sessions/${encodeURIComponent(sessionId)}/status/`);
+export function getSessionStatus(sessionId: string, timeoutMs = 15_000): Promise<SessionStatus> {
+  return call<SessionStatus>("GET", `/checkout-sessions/${encodeURIComponent(sessionId)}/status/`, undefined, timeoutMs);
 }
 
 /* ------------------------------------------------------------------ */

@@ -96,7 +96,7 @@ Les images ne contiennent jamais de texte : les prénoms et les dates sont posé
 
 ## 7. Vérifications
 
-- `npm test` : 42 tests automatiques (sécurité de la base, signatures de paiement, formats).
+- `npm test` : 65 tests automatiques (sécurité de la base, signatures de paiement, formats).
 - `npm run build` : doit se terminer sans erreur.
 - Parcours à tester dans le navigateur :
   1. Se connecter → créer une invitation → l'aperçu s'affiche.

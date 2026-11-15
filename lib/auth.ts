@@ -49,8 +49,19 @@ export async function requireAdmin(): Promise<CurrentUser> {
   return user;
 }
 
-/** N'accepte qu'un chemin interne pour les redirections après connexion. */
+/**
+ * N'accepte qu'un chemin interne pour les redirections après connexion.
+ * Refuse « // », les antislashs et les caractères de contrôle (« /\evil.com » serait
+ * interprété comme un autre site par les navigateurs), puis revérifie avec l'analyseur d'URL.
+ */
 export function safeNextPath(value: unknown, fallback = "/tableau-de-bord"): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return fallback;
-  return value;
+  if (typeof value !== "string" || value.length > 300) return fallback;
+  if (!value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(value)) return fallback;
+  try {
+    const u = new URL(value, "http://interne.invalid");
+    if (u.origin !== "http://interne.invalid") return fallback;
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return fallback;
+  }
 }

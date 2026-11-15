@@ -25,7 +25,9 @@ export async function GET(_req: Request, { params }: RouteContext<"/tableau-de-b
 
   const cell = (v: unknown) => {
     let s = String(v ?? "");
-    if (/^[=+\-@]/.test(s)) s = `'${s}`; // évite l'injection de formules dans Excel
+    // Évite l'injection de formules dans Excel, sans abîmer les numéros « +226 70 00 00 00 »
+    const looksNumeric = /^[+-]?[\d\s().-]+$/.test(s);
+    if (/^[=@\t\r]/.test(s) || (/^[+-]/.test(s) && !looksNumeric)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
   const dateFmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: "Africa/Ouagadougou" });

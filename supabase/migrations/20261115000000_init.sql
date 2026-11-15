@@ -81,22 +81,23 @@ create table public.events (
   venue           text check (char_length(venue) <= 160),
   city            text check (char_length(city) <= 80),
   address         text check (char_length(address) <= 240),
-  maps_url        text check (char_length(maps_url) <= 500),
+  maps_url        text check (char_length(maps_url) <= 500 and maps_url ~ '^https://'),
   message         text check (char_length(message) <= 2000),
-  program         jsonb not null default '[]'::jsonb,
+  program         jsonb not null default '[]'::jsonb check (jsonb_typeof(program) = 'array' and jsonb_array_length(program) <= 20),
   dress_code      text check (char_length(dress_code) <= 160),
   rsvp_deadline   date,
   contact_phone   text check (char_length(contact_phone) <= 30),
   language        text not null default 'fr' check (language in ('fr', 'mos', 'dyu')),
   theme           text not null default 'faso-dan-fani'
                     check (theme in ('faso-dan-fani', 'bogolan', 'tiebele', 'indigo')),
-  cover_image_url text,
+  cover_image_url text check (cover_image_url is null or (cover_image_url ~ '^https://' and char_length(cover_image_url) <= 600)),
   status          text not null default 'draft' check (status in ('draft', 'published', 'archived')),
   -- Colonnes réservées au serveur (paiement validé) : non modifiables par l'organisateur
   plan            text check (plan in ('essentiel', 'celebration', 'prestige')),
   plan_expires_at timestamptz,
   guest_limit     integer check (guest_limit is null or guest_limit > 0),
   image_generations integer not null default 0,
+  blocked_at      timestamptz,   -- suspension par l'administration (réservé au serveur)
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
@@ -115,7 +116,7 @@ language sql
 stable
 set search_path = ''
 as $$
-  select e.status = 'published' and e.plan_expires_at is not null and e.plan_expires_at > now();
+  select e.status = 'published' and e.blocked_at is null and e.plan_expires_at is not null and e.plan_expires_at > now();
 $$;
 
 -- ---------------------------------------------------------------------
@@ -133,32 +134,6 @@ create table public.rsvps (
 );
 
 create index rsvps_event_idx on public.rsvps (event_id, created_at desc);
-
--- Limite d'invités suivis selon la formule (garde-fou côté base)
-create or replace function public.enforce_guest_limit()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  lim integer;
-  n   integer;
-begin
-  select guest_limit into lim from public.events where id = new.event_id;
-  if lim is not null then
-    select count(*) into n from public.rsvps where event_id = new.event_id;
-    if n >= lim then
-      raise exception 'guest_limit_reached' using errcode = 'P0001';
-    end if;
-  end if;
-  return new;
-end;
-$$;
-
-create trigger rsvps_guest_limit
-  before insert on public.rsvps
-  for each row execute function public.enforce_guest_limit();
 
 -- ---------------------------------------------------------------------
 -- Paiements (SasPay)
@@ -187,6 +162,8 @@ create table public.webhook_events (
   id          text primary key,
   event_type  text not null,
   payload     jsonb not null,
+  status      text not null default 'processing' check (status in ('processing', 'done')),
+  locked_at   timestamptz not null default now(),
   received_at timestamptz not null default now()
 );
 
@@ -242,8 +219,8 @@ revoke update on public.profiles from authenticated, anon;
 grant update (full_name, phone) on public.profiles to authenticated;
 
 -- events
-create policy "événement : public si publié et payé" on public.events
-  for select to anon, authenticated using (public.event_is_public(events));
+-- Pas de lecture publique directe : les invités passent par get_public_event(slug),
+-- qui ne renvoie qu'une invitation à la fois, par son adresse exacte.
 create policy "événement : lecture par le propriétaire ou admin" on public.events
   for select to authenticated using (owner_id = (select auth.uid()) or (select public.is_admin()));
 create policy "événement : création par soi" on public.events
@@ -263,11 +240,12 @@ grant insert (slug, event_type, title, hosts, starts_at, venue, city, address, m
 grant update (event_type, title, hosts, starts_at, venue, city, address, maps_url, message,
               program, dress_code, rsvp_deadline, contact_phone, language, theme, cover_image_url, status)
   on public.events to authenticated;
+-- Aucun accès anonyme direct aux invitations ni aux réponses
+revoke all on public.events from anon;
+revoke insert, update, delete on public.rsvps from anon, authenticated;
 
 -- rsvps
-create policy "rsvp : le public répond à un événement public" on public.rsvps
-  for insert to anon, authenticated
-  with check (exists (select 1 from public.events e where e.id = event_id and public.event_is_public(e)));
+-- Pas d'insertion directe de réponse : tout passe par submit_rsvp().
 create policy "rsvp : lecture par le propriétaire de l'événement ou admin" on public.rsvps
   for select to authenticated
   using ((select public.is_admin()) or exists (
@@ -299,15 +277,110 @@ create policy "réglages : modification admin" on public.app_settings
 alter publication supabase_realtime add table public.rsvps;
 
 -- =====================================================================
--- Stockage : images d'invitation (lecture publique, écriture dans son dossier)
+-- Stockage : images d'invitation (lecture publique ; écriture par le serveur uniquement)
 -- =====================================================================
-insert into storage.buckets (id, name, public)
-values ('invitations', 'invitations', true)
-on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('invitations', 'invitations', true, 3145728, array['image/png', 'image/jpeg', 'image/webp'])
+on conflict (id) do update
+  set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
-create policy "stockage : dépôt dans son dossier" on storage.objects
-  for insert to authenticated
-  with check (bucket_id = 'invitations' and (storage.foldername(name))[1] = (select auth.uid())::text);
-create policy "stockage : suppression dans son dossier" on storage.objects
-  for delete to authenticated
-  using (bucket_id = 'invitations' and (storage.foldername(name))[1] = (select auth.uid())::text);
+-- =====================================================================
+-- Fonctions publiques (invités) — exécutées avec les droits du propriétaire de la base
+-- =====================================================================
+
+-- Une invitation par son adresse exacte, avec une liste de colonnes explicite
+create or replace function public.get_public_event(p_slug text)
+returns table (
+  id uuid, slug text, event_type text, title text, hosts text, starts_at timestamptz,
+  venue text, city text, address text, maps_url text, message text, program jsonb,
+  dress_code text, rsvp_deadline date, contact_phone text, language text, theme text,
+  cover_image_url text, status text, plan text, plan_expires_at timestamptz, guest_limit integer
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select e.id, e.slug, e.event_type, e.title, e.hosts, e.starts_at,
+         e.venue, e.city, e.address, e.maps_url, e.message, e.program,
+         e.dress_code, e.rsvp_deadline, e.contact_phone, e.language, e.theme,
+         e.cover_image_url, e.status, e.plan, e.plan_expires_at, e.guest_limit
+  from public.events e
+  where e.slug = p_slug and public.event_is_public(e)
+$$;
+
+-- Réponse d'un invité : vérifie la date limite, la limite d'invités (avec verrou) et le rythme
+create or replace function public.submit_rsvp(
+  p_slug text, p_name text, p_phone text, p_response text, p_guests integer, p_message text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  ev public.events;
+  n  integer;
+begin
+  select * into ev from public.events e where e.slug = p_slug for update;
+  if not found or not public.event_is_public(ev) then
+    raise exception 'event_unavailable' using errcode = 'P0001';
+  end if;
+  if ev.rsvp_deadline is not null and ev.rsvp_deadline < (now() at time zone 'utc')::date then
+    raise exception 'rsvp_closed' using errcode = 'P0001';
+  end if;
+  select count(*) into n from public.rsvps r where r.event_id = ev.id and r.created_at > now() - interval '1 minute';
+  if n >= 40 then
+    raise exception 'too_many_requests' using errcode = 'P0001';
+  end if;
+  if ev.guest_limit is not null then
+    select count(*) into n from public.rsvps r where r.event_id = ev.id;
+    if n >= ev.guest_limit then
+      raise exception 'guest_limit_reached' using errcode = 'P0001';
+    end if;
+  end if;
+  insert into public.rsvps (event_id, name, phone, response, guests_count, message)
+  values (ev.id, p_name, nullif(p_phone, ''), p_response, greatest(1, least(coalesce(p_guests, 1), 20)), nullif(p_message, ''));
+end;
+$$;
+
+revoke execute on function public.get_public_event(text) from public;
+revoke execute on function public.submit_rsvp(text, text, text, text, integer, text) from public;
+grant execute on function public.get_public_event(text) to anon, authenticated, service_role;
+grant execute on function public.submit_rsvp(text, text, text, text, integer, text) to anon, authenticated, service_role;
+
+-- =====================================================================
+-- Activation d'une formule : UNE transaction (paiement + événement), serveur uniquement
+-- =====================================================================
+create or replace function public.activate_payment(
+  p_payment_id uuid, p_transaction_id text, p_guest_limit integer, p_months integer
+)
+returns text   -- slug de l'événement, ou null si le paiement était déjà traité
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  pay public.payments;
+  v_slug text;
+begin
+  update public.payments
+     set status = 'paid', paid_at = now(), saspay_transaction_id = p_transaction_id
+   where id = p_payment_id and status = 'pending'
+   returning * into pay;
+  if not found then
+    return null;
+  end if;
+
+  update public.events e
+     set plan = pay.plan,
+         plan_expires_at = greatest(coalesce(e.plan_expires_at, now()), now()) + make_interval(months => p_months),
+         guest_limit = p_guest_limit
+   where e.id = pay.event_id
+   returning e.slug into v_slug;
+  return v_slug;
+end;
+$$;
+
+revoke execute on function public.activate_payment(uuid, text, integer, integer) from public, anon, authenticated;
+grant execute on function public.activate_payment(uuid, text, integer, integer) to service_role;

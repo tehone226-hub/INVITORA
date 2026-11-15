@@ -19,7 +19,7 @@ const RsvpSchema = z.object({
   response: z.enum(["yes", "no", "maybe"], { message: "Choisissez une réponse." }),
   guests_count: z.coerce.number().int().min(1).max(20).default(1),
   message: z.string().trim().max(500).optional().or(z.literal("")),
-  website: z.string().max(0).optional().or(z.literal("")), // piège à robots (doit rester vide)
+  website: z.string().optional(), // piège à robots : une personne ne le remplit jamais
 });
 
 export async function submitRsvp(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -41,18 +41,28 @@ export async function submitRsvp(_prev: ActionState, formData: FormData): Promis
   const supabase = createAnonClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { error } = await supabase.from("rsvps").insert({
-    event_id: event.id,
-    name: r.name,
-    phone: r.phone || null,
-    response: r.response,
-    guests_count: r.response === "no" ? 1 : r.guests_count,
-    message: r.message || null,
+  // Toute la logique (date limite, limite d'invités avec verrou, rythme) est dans la fonction SQL.
+  const { error } = await supabase.rpc("submit_rsvp", {
+    p_slug: r.slug,
+    p_name: r.name,
+    p_phone: r.phone ?? "",
+    p_response: r.response,
+    p_guests: r.response === "no" ? 1 : r.guests_count,
+    p_message: r.message ?? "",
   });
 
   if (error) {
     if (error.message.includes("guest_limit_reached")) {
       return { ok: false, message: "La liste des invités est complète. Contactez directement l'organisateur." };
+    }
+    if (error.message.includes("rsvp_closed")) {
+      return { ok: false, message: "La date limite de réponse est passée. Contactez directement l'organisateur." };
+    }
+    if (error.message.includes("event_unavailable")) {
+      return { ok: false, message: "Cette invitation n'est plus disponible." };
+    }
+    if (error.message.includes("too_many_requests")) {
+      return { ok: false, message: "Beaucoup de réponses arrivent en même temps. Réessayez dans une minute." };
     }
     console.error("[rsvp]", error.message);
     return { ok: false, message: "Votre réponse n'a pas pu être enregistrée. Vérifiez votre connexion et réessayez." };

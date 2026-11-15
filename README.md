@@ -12,7 +12,7 @@ Invitations digitales générées par IA pour l'Afrique de l'Ouest : création e
 ```bash
 npm install      # installer les dépendances
 npm run dev      # lancer le site en local → http://localhost:3000
-npm test         # 42 tests (sécurité de la base, paiement, formats)
+npm test         # 65 tests (sécurité de la base, paiement, formats)
 npm run build    # vérifier que tout compile
 npm run art      # régénérer les 4 fonds d'étoffe (scripts/generate-theme-art.mjs)
 ```

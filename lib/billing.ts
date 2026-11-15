@@ -1,9 +1,16 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
 import { PLANS, PLAN_DURATION_MONTHS, type PlanId } from "@/config/plans";
-import { getSessionStatus, type WebhookPayload } from "@/lib/saspay";
+import { getSessionStatus, type SessionStatus, type WebhookPayload } from "@/lib/saspay";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PaymentRow } from "@/lib/types";
+
+/** Les sessions SasPay créées par Invitora expirent après ce délai (voir createCheckoutSession). */
+export const SESSION_LIFETIME_HOURS = 2;
+/** Fenêtre de rapprochement des webhooks : durée de vie de la session + marge pour les nouvelles tentatives. */
+const MATCH_WINDOW_HOURS = SESSION_LIFETIME_HOURS + 4;
+/** Un traitement « en cours » depuis plus longtemps est considéré comme interrompu. */
+const LOCK_TIMEOUT_MS = 90_000;
 
 /** Date d'expiration : 3 mois après la date la plus tardive entre maintenant et l'expiration actuelle. */
 export function computeExpiry(currentExpiry: string | null, now = new Date()): string {
@@ -13,103 +20,139 @@ export function computeExpiry(currentExpiry: string | null, now = new Date()): s
   return d.toISOString();
 }
 
-/** Active la formule d'un événement après un paiement CONFIRMÉ par l'API SasPay. */
-async function activatePayment(payment: PaymentRow, transactionId: string) {
+/**
+ * Active la formule d'un événement après un paiement CONFIRMÉ par l'API SasPay.
+ * Une seule transaction SQL (fonction activate_payment) : le paiement passe à « paid »
+ * et l'événement reçoit sa formule, ou rien ne change. Idempotent.
+ */
+async function activatePayment(payment: PaymentRow, transactionId: string): Promise<boolean> {
   const admin = createAdminClient();
-
-  // Verrou d'idempotence : on ne passe à « paid » qu'une seule fois.
-  const { data: updated, error } = await admin
-    .from("payments")
-    .update({ status: "paid", paid_at: new Date().toISOString(), saspay_transaction_id: transactionId })
-    .eq("id", payment.id)
-    .eq("status", "pending")
-    .select("id")
-    .maybeSingle();
-  if (error) throw error;
-  if (!updated) return false;
-
-  const { data: event, error: evErr } = await admin
-    .from("events")
-    .select("plan_expires_at, slug")
-    .eq("id", payment.event_id)
-    .single<{ plan_expires_at: string | null; slug: string }>();
-  if (evErr) throw evErr;
-
   const plan = PLANS[payment.plan as PlanId];
-  const { error: upErr } = await admin
-    .from("events")
-    .update({
-      plan: plan.id,
-      plan_expires_at: computeExpiry(event.plan_expires_at),
-      guest_limit: plan.limits.guests,
-    })
-    .eq("id", payment.event_id);
-  if (upErr) throw upErr;
+  const { data: slug, error } = await admin.rpc("activate_payment", {
+    p_payment_id: payment.id,
+    p_transaction_id: transactionId,
+    p_guest_limit: plan.limits.guests,
+    p_months: PLAN_DURATION_MONTHS,
+  });
+  if (error) throw error;
+  if (!slug) return false; // déjà traité
   // La page invité (mise en cache) reflète tout de suite la formule active
-  revalidateTag(`event-${event.slug}`, { expire: 0 });
+  revalidateTag(`event-${slug}`, { expire: 0 });
   return true;
 }
 
-export type WebhookOutcome = "duplicate" | "ignored" | "activated" | "unmatched";
+export type WebhookOutcome = "duplicate" | "busy" | "ignored" | "activated" | "unmatched";
+
+/** Vrai si la session confirme un paiement réussi pour cette transaction. */
+const confirms = (s: SessionStatus, transactionId: string) =>
+  s.status === "PAID" && s.transaction_status === "SUCCESS" && s.transaction_id === transactionId;
 
 /**
- * Traite un webhook déjà authentifié (signature vérifiée) :
- * 1. enregistre data.id (un seul traitement par transaction) ;
- * 2. pour transaction.success, retrouve la session en attente correspondante
- *    et n'active la formule que si l'API SasPay confirme PAID + SUCCESS.
+ * Traite un webhook déjà authentifié (signature vérifiée).
+ * - Seul « transaction.success » est traité ; les autres événements sont ignorés
+ *   (ils ne doivent pas occuper l'identifiant de la transaction).
+ * - data.id est réservé en base avec un état « processing » puis « done » : une nouvelle
+ *   tentative pendant un traitement en cours reçoit « busy » (SasPay réessaiera), jamais « duplicate ».
+ * - La formule ne s'active que si l'API SasPay confirme PAID + SUCCESS pour CETTE transaction.
  */
 export async function handleWebhook(payload: WebhookPayload): Promise<WebhookOutcome> {
+  if (payload.event !== "transaction.success") return "ignored";
   const admin = createAdminClient();
+  const id = payload.data.id;
 
-  const { error: dupErr } = await admin
+  const { error: lockErr } = await admin
     .from("webhook_events")
-    .insert({ id: payload.data.id, event_type: payload.event, payload });
-  if (dupErr) {
-    if (dupErr.code === "23505") return "duplicate";
-    throw dupErr;
+    .insert({ id, event_type: payload.event, payload, status: "processing" });
+
+  if (lockErr) {
+    if (lockErr.code !== "23505") throw lockErr;
+    const { data: existing } = await admin.from("webhook_events").select("status, locked_at").eq("id", id).maybeSingle<{ status: string; locked_at: string }>();
+    if (!existing || existing.status === "done") return "duplicate";
+    if (Date.now() - new Date(existing.locked_at).getTime() < LOCK_TIMEOUT_MS) return "busy";
+    // Traitement interrompu : on le reprend (un seul repreneur grâce à la condition sur locked_at).
+    const { data: taken } = await admin
+      .from("webhook_events")
+      .update({ locked_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("status", "processing")
+      .eq("locked_at", existing.locked_at)
+      .select("id")
+      .maybeSingle();
+    if (!taken) return "busy";
   }
 
-  if (payload.event !== "transaction.success") return "ignored";
-
   try {
-    return await matchAndActivate(payload);
+    const outcome = await matchAndActivate(payload);
+    if (outcome === "activated" || outcome === "duplicate") {
+      await admin.from("webhook_events").update({ status: "done" }).eq("id", id);
+    } else {
+      // Aucune correspondance : on libère l'identifiant pour que la nouvelle tentative de SasPay soit retraitée.
+      await admin.from("webhook_events").delete().eq("id", id);
+    }
+    return outcome;
   } catch (e) {
-    // En cas d'erreur, on libère data.id pour que la nouvelle tentative de SasPay soit retraitée.
-    await admin.from("webhook_events").delete().eq("id", payload.data.id);
+    await admin.from("webhook_events").delete().eq("id", id);
     throw e;
   }
 }
 
+/** Retrouve la session de paiement qui correspond à la transaction et l'active si SasPay le confirme. */
 async function matchAndActivate(payload: WebhookPayload): Promise<WebhookOutcome> {
   const admin = createAdminClient();
+  const txId = payload.data.id;
 
-  // Paiements en attente des 7 derniers jours (le montant du webhook peut inclure des frais :
-  // on ne filtre pas dessus, c'est l'API SasPay qui confirme la correspondance).
   const { data: pending, error } = await admin
     .from("payments")
     .select("*")
     .eq("status", "pending")
-    .gte("created_at", new Date(Date.now() - 7 * 24 * 3600_000).toISOString())
+    .not("saspay_session_id", "is", null)
+    .gte("created_at", new Date(Date.now() - MATCH_WINDOW_HOURS * 3600_000).toISOString())
     .order("created_at", { ascending: false })
-    .limit(25)
+    .limit(60)
     .returns<PaymentRow[]>();
   if (error) throw error;
+  let candidates = pending ?? [];
 
-  for (const payment of pending ?? []) {
-    if (!payment.saspay_session_id) continue;
-    try {
-      const status = await getSessionStatus(payment.saspay_session_id);
-      if (status.status === "PAID" && status.transaction_status === "SUCCESS" && status.transaction_id === payload.data.id) {
-        return (await activatePayment(payment, payload.data.id)) ? "activated" : "duplicate";
-      }
-    } catch (e) {
-      console.error("[saspay] vérification de session impossible", payment.id, e instanceof Error ? e.message : e);
-    }
+  // 1. Corrélation directe si SasPay renvoie nos métadonnées ou notre référence dans le webhook.
+  const hint = extractPaymentHint(payload);
+  if (hint) {
+    const direct = candidates.find((p) => p.id === hint);
+    if (direct) candidates = [direct, ...candidates.filter((p) => p.id !== hint)];
   }
 
-  // Aucune correspondance : on libère data.id pour qu'une nouvelle tentative de SasPay soit retraitée.
-  await admin.from("webhook_events").delete().eq("id", payload.data.id);
+  // 2. Sinon, on commence par les paiements du même montant (les plus probables).
+  const amount = payload.data.amount ? Number.parseFloat(payload.data.amount).toFixed(2) : null;
+  if (amount && !hint) {
+    candidates = [...candidates.filter((p) => p.amount === amount), ...candidates.filter((p) => p.amount !== amount)];
+  }
+
+  // Vérification auprès de SasPay par petits lots en parallèle, avec délai court (SasPay attend 15 s).
+  const BATCH = 8;
+  const deadline = Date.now() + 11_000;
+  for (let i = 0; i < candidates.length && Date.now() < deadline; i += BATCH) {
+    const batch = candidates.slice(i, i + BATCH);
+    const results = await Promise.all(
+      batch.map(async (payment) => {
+        try {
+          const status = await getSessionStatus(payment.saspay_session_id as string, 4_000);
+          return confirms(status, txId) ? payment : null;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const match = results.find(Boolean);
+    if (match) return (await activatePayment(match, txId)) ? "activated" : "duplicate";
+  }
   return "unmatched";
+}
+
+/** Identifiant de paiement Invitora éventuellement présent dans le webhook (métadonnées ou référence). */
+function extractPaymentHint(payload: WebhookPayload): string | null {
+  const d = payload.data as Record<string, unknown>;
+  const meta = (d.metadata ?? d.session_metadata) as Record<string, unknown> | undefined;
+  const candidate = meta?.payment_id ?? d.reference_id ?? d.external_reference;
+  return typeof candidate === "string" && /^[0-9a-f-]{36}$/i.test(candidate) ? candidate : null;
 }
 
 /**
@@ -150,7 +193,7 @@ export async function adminForceActivation(paymentId: string, adminId: string): 
 
   const { error } = await admin
     .from("webhook_events")
-    .insert({ id: status.transaction_id, event_type: "admin.force_activation", payload: { status, adminId } });
+    .insert({ id: status.transaction_id, event_type: "admin.force_activation", payload: { status, adminId }, status: "done" });
   if (error && error.code !== "23505") throw error;
   return (await activatePayment(payment, status.transaction_id)) ? "activated" : "already";
 }

@@ -26,11 +26,14 @@ Il n'y a pas de champ pour choisir le réseau : le client choisit Orange Money o
 - Nouvelles tentatives : 5 essais (tout de suite, puis après 30 s, 5 min, 30 min et 2 h), avec 15 s de délai maximal par essai.
 
 ## Choix d'implémentation (lib/saspay.ts, lib/billing.ts)
-1. Le webhook est vérifié (signature et horodatage), puis `data.id` est inséré dans `webhook_events`, dont la clé primaire empêche tout double traitement.
-2. Pour `transaction.success`, on parcourt les paiements `pending` des 7 derniers jours et on interroge l'API SasPay sur chaque session. On n'active que si `status = PAID`, `transaction_status = SUCCESS` **et** `transaction_id = data.id`.
-3. Si aucune session ne correspond, on libère `data.id` et on répond 500 : SasPay réessaiera plus tard.
-4. Le retour du navigateur (`/paiement/retour`) n'active jamais rien.
-5. Montant de test : la variable `SASPAY_TEST_AMOUNT_XOF` force un petit montant (règle 4).
+1. Le webhook est d'abord authentifié (signature HMAC et horodatage à moins de 5 minutes). Seul `transaction.success` est traité : les autres événements sont ignorés et n'occupent pas l'identifiant de la transaction.
+2. `data.id` est réservé dans `webhook_events` avec un état `processing`, puis `done`. Une nouvelle tentative de SasPay pendant un traitement en cours reçoit une erreur 500 (SasPay réessaiera) et jamais « déjà traité ». Un traitement interrompu depuis plus de 90 s est repris.
+3. Rapprochement : si le webhook contient nos métadonnées (`payment_id`), on l'utilise directement. Sinon on parcourt les paiements `pending` des 6 dernières heures, ceux du même montant d'abord, par lots de 8 en parallèle avec un délai de 4 s (SasPay attend 15 s au maximum).
+4. On n'active que si l'API SasPay renvoie `PAID` + `SUCCESS` **et** un `transaction_id` égal à `data.id`.
+5. L'activation est une seule transaction SQL (`activate_payment`) : paiement `paid`, formule posée, durée prolongée de 3 mois. Elle est idempotente.
+6. Les sessions SasPay expirent après 2 h. Un paiement déjà ouvert pour la même invitation et la même formule est repris, pas dupliqué ; au plus 5 paiements ouverts par heure et par utilisateur.
+7. Le retour du navigateur (`/paiement/retour`) n'active jamais rien.
+8. Montant de test : `SASPAY_TEST_AMOUNT_XOF` force un petit montant (règle 4). Un bandeau rouge s'affiche dans l'administration tant qu'il est défini.
 
 ## Points à confirmer avec SasPay
 - Les codes réseau `orange_bf` et `moov_bf` (non cités dans les pages lues ; à vérifier avec `GET /networks/`).
