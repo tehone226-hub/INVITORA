@@ -1,4 +1,5 @@
 import "server-only";
+import { revalidateTag } from "next/cache";
 import { PLANS, PLAN_DURATION_MONTHS, type PlanId } from "@/config/plans";
 import { getSessionStatus, type WebhookPayload } from "@/lib/saspay";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,9 +30,9 @@ async function activatePayment(payment: PaymentRow, transactionId: string) {
 
   const { data: event, error: evErr } = await admin
     .from("events")
-    .select("plan_expires_at")
+    .select("plan_expires_at, slug")
     .eq("id", payment.event_id)
-    .single<{ plan_expires_at: string | null }>();
+    .single<{ plan_expires_at: string | null; slug: string }>();
   if (evErr) throw evErr;
 
   const plan = PLANS[payment.plan as PlanId];
@@ -44,6 +45,8 @@ async function activatePayment(payment: PaymentRow, transactionId: string) {
     })
     .eq("id", payment.event_id);
   if (upErr) throw upErr;
+  // La page invité (mise en cache) reflète tout de suite la formule active
+  revalidateTag(`event-${event.slug}`, { expire: 0 });
   return true;
 }
 

@@ -1,0 +1,324 @@
+import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { Suspense } from "react";
+import { ArrowLeft, Download, Eye, MessageCircle, Pencil, RefreshCw, Sparkles, Wand2 } from "lucide-react";
+import { PLANS } from "@/config/plans";
+import { THEMES } from "@/config/themes";
+import { ButtonLink } from "@/components/button-link";
+import { ActionButton } from "@/components/dashboard/action-button";
+import { CopyLink } from "@/components/dashboard/copy-link";
+import { RsvpLive } from "@/components/dashboard/rsvp-live";
+import { PlanBadge, StatusBadge } from "@/components/dashboard/status-badge";
+import { buttonClass } from "@/components/ui/form";
+import { Notice } from "@/components/ui/notice";
+import { MAX_IMAGE_GENERATIONS } from "@/lib/ai/invitation-image";
+import { requireUser } from "@/lib/auth";
+import { features } from "@/lib/env-server";
+import { eventTypeLabel } from "@/lib/event-types";
+import { getMyEvent, isPlanActive, isPublic, listEventPayments, listRsvps, planOf } from "@/lib/events";
+import { formatDate, formatFcfa, formatShortDate } from "@/lib/format";
+import { invitationUrl, whatsappMessage, whatsappShareUrl } from "@/lib/share";
+import {
+  archiveEvent,
+  checkPayment,
+  deleteRsvp,
+  generateCover,
+  publishEvent,
+  regenerateText,
+  resetCover,
+  unpublishEvent,
+} from "./actions";
+
+export const metadata: Metadata = { title: "Mon invitation", robots: { index: false } };
+
+export default function EventPage(props: PageProps<"/tableau-de-bord/evenements/[id]">) {
+  return (
+    <section className="mx-auto w-full max-w-[1180px] px-5 py-8 sm:py-10">
+      <Link href="/tableau-de-bord" className="inline-flex items-center gap-1.5 text-sm font-bold text-ink/60 hover:text-terracotta">
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        Mes invitations
+      </Link>
+      <Suspense fallback={<div className="mt-6 h-[600px] animate-pulse rounded-3xl bg-sand/60" />}>
+        <EventDashboard {...props} />
+      </Suspense>
+    </section>
+  );
+}
+
+async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-bord/evenements/[id]">) {
+  const { id } = await params;
+  await requireUser(`/tableau-de-bord/evenements/${id}`);
+  const sp = await searchParams;
+  const event = await getMyEvent(id);
+  const [rsvps, payments] = await Promise.all([listRsvps(id), listEventPayments(id)]);
+
+  const plan = planOf(event);
+  const active = isPlanActive(event);
+  const online = isPublic(event);
+  const theme = THEMES[event.theme];
+  const url = invitationUrl(event.slug);
+  const shareText = whatsappMessage(event);
+  const reminder = `Bonjour, petit rappel pour ${event.title}${event.starts_at ? ` le ${formatDate(event.starts_at)}` : ""}. Pouvez-vous confirmer votre présence ici : ${url}`;
+  const imagesLeft = Math.max(0, MAX_IMAGE_GENERATIONS - event.image_generations);
+  const pendingPayment = payments.find((p) => p.status === "pending");
+
+  return (
+    <div className="mt-5 space-y-8">
+      {sp.nouveau && (
+        <Notice tone="success" title="Votre invitation est prête">
+          Relisez le texte, choisissez une formule pour activer le lien, puis partagez-le sur WhatsApp.
+        </Notice>
+      )}
+      {sp.enregistre && <Notice tone="success">Modifications enregistrées.</Notice>}
+
+      {/* En-tête */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge event={event} />
+            <PlanBadge event={event} />
+          </div>
+          <h1 className="mt-2 text-[28px] leading-tight font-semibold text-balance sm:text-[34px]">{event.title}</h1>
+          <p className="mt-1 text-[15px] text-ink/60">
+            {eventTypeLabel(event.event_type)}
+            {event.starts_at && ` · ${formatDate(event.starts_at)}`}
+            {event.city && ` · ${event.city}`}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink href={`/tableau-de-bord/evenements/${id}/apercu`} variant="outline">
+            <Eye />
+            Aperçu
+          </ButtonLink>
+          <ButtonLink href={`/tableau-de-bord/evenements/${id}/modifier`} variant="outline">
+            <Pencil />
+            Modifier
+          </ButtonLink>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+        {/* Carte + IA image */}
+        <div className="space-y-4">
+          <div
+            className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-3xl p-6 shadow-card"
+            style={{ backgroundImage: theme.pattern, backgroundSize: `${theme.tileSize}px` }}
+          >
+            <Image
+              src={event.cover_image_url || theme.image}
+              alt=""
+              fill
+              sizes="360px"
+              className="object-cover"
+              unoptimized={Boolean(event.cover_image_url)}
+            />
+            <div
+              className="relative w-full max-w-[230px] rounded-xl px-4 py-7 text-center"
+              style={{ backgroundColor: theme.colors.panel, color: theme.colors.text, outline: `1px solid ${theme.colors.accent}`, outlineOffset: "-6px" }}
+            >
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: theme.colors.accent }}>
+                {eventTypeLabel(event.event_type)}
+              </p>
+              <p className="mt-2 font-heading text-xl leading-tight font-semibold">{event.hosts || event.title}</p>
+              {event.starts_at && <p className="mt-2 text-[11px] font-semibold">{formatDate(event.starts_at)}</p>}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card">
+            <h2 className="flex items-center gap-2 font-sans text-[15px] font-bold">
+              <Wand2 className="size-4 text-terracotta" aria-hidden="true" />
+              Fond créé par l&apos;IA
+            </h2>
+            <p className="mt-1 text-sm text-ink/60">
+              {features.aiImage
+                ? `Un fond unique, sans texte, dans le style « ${theme.name} ». ${imagesLeft} création${imagesLeft > 1 ? "s" : ""} restante${imagesLeft > 1 ? "s" : ""}.`
+                : "Bientôt disponible : l'étoffe choisie est utilisée comme fond."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {features.aiImage && imagesLeft > 0 && (
+                <ActionButton action={generateCover.bind(null, id)} variant="forest" pendingLabel="Création de l'image (≈ 20 s)…">
+                  <Sparkles />
+                  Créer un fond
+                </ActionButton>
+              )}
+              {event.cover_image_url && (
+                <ActionButton action={resetCover.bind(null, id)} variant="outline">
+                  Revenir à l&apos;étoffe
+                </ActionButton>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Étapes */}
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-6">
+            <h2 className="text-xl font-semibold">Mise en ligne</h2>
+            <ol className="mt-4 space-y-5">
+              <StepItem n={1} done title="Texte de l'invitation">
+                <p className="line-clamp-3 text-sm text-ink/65">{event.message || "Aucun message pour l'instant."}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <ButtonLink href={`/tableau-de-bord/evenements/${id}/modifier`} variant="outline" size="sm">
+                    <Pencil />
+                    Modifier le texte
+                  </ButtonLink>
+                  {features.aiText && (
+                    <ActionButton
+                      action={regenerateText.bind(null, id)}
+                      variant="outline"
+                      pendingLabel="L'IA réécrit…"
+                      confirm="Remplacer le titre, le message et le programme par une nouvelle proposition de l'IA ?"
+                    >
+                      <RefreshCw />
+                      Réécrire avec l&apos;IA
+                    </ActionButton>
+                  )}
+                </div>
+              </StepItem>
+
+              <StepItem n={2} done={active} title="Formule">
+                {active && plan ? (
+                  <p className="text-sm text-ink/70">
+                    {plan.name} active jusqu&apos;au {formatShortDate(event.plan_expires_at)} ·{" "}
+                    {plan.limits.guests ? `${plan.limits.guests} invités suivis` : "invités illimités"}.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm text-ink/70">
+                      Paiement unique par Orange Money ou Moov Money, à partir de {formatFcfa(PLANS.essentiel.price)}. Le lien reste actif 3 mois.
+                    </p>
+                    <ButtonLink href={`/tableau-de-bord/evenements/${id}/formule`} size="sm" className="mt-3">
+                      Choisir une formule
+                    </ButtonLink>
+                    {pendingPayment && (
+                      <div className="mt-3">
+                        <ActionButton action={checkPayment.bind(null, pendingPayment.id)} variant="outline">
+                          Vérifier mon paiement en cours
+                        </ActionButton>
+                      </div>
+                    )}
+                  </>
+                )}
+              </StepItem>
+
+              <StepItem n={3} done={online} title="Publication">
+                {online ? (
+                  <>
+                    <p className="text-sm text-ink/70">Votre invitation est en ligne.</p>
+                    <div className="mt-3">
+                      <ActionButton
+                        action={unpublishEvent.bind(null, id)}
+                        variant="outline"
+                        confirm="Désactiver le lien ? Vos invités ne pourront plus ouvrir l'invitation."
+                      >
+                        Désactiver le lien
+                      </ActionButton>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-ink/70">
+                      {active ? "Tout est prêt : publiez pour activer le lien." : "Disponible après le choix d'une formule."}
+                    </p>
+                    {active && (
+                      <div className="mt-3">
+                        <ActionButton action={publishEvent.bind(null, id)} variant="forest">
+                          Publier l&apos;invitation
+                        </ActionButton>
+                      </div>
+                    )}
+                  </>
+                )}
+              </StepItem>
+
+              <StepItem n={4} done={online && rsvps.length > 0} title="Partage">
+                {online ? (
+                  <div className="space-y-3">
+                    <CopyLink url={url} />
+                    <a href={whatsappShareUrl(shareText)} target="_blank" rel="noopener noreferrer" className={buttonClass("forest", "w-full sm:w-auto")}>
+                      <MessageCircle />
+                      Partager sur WhatsApp
+                    </a>
+                  </div>
+                ) : (
+                  <p className="text-sm text-ink/70">Le lien à partager apparaîtra ici une fois l&apos;invitation publiée.</p>
+                )}
+              </StepItem>
+            </ol>
+          </div>
+
+          {/* Réponses */}
+          <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">Réponses des invités</h2>
+              {rsvps.length > 0 && (
+                <a href={`/tableau-de-bord/evenements/${id}/export`} className={buttonClass("outline", "h-9 px-4 text-sm")}>
+                  <Download />
+                  Exporter (Excel)
+                </a>
+              )}
+            </div>
+            <RsvpLive
+              eventId={id}
+              initial={rsvps}
+              guestLimit={event.guest_limit}
+              reminderText={reminder}
+              canRemind={Boolean(plan?.limits.autoReminders)}
+              onDelete={deleteRsvp.bind(null, id)}
+            />
+            {!plan?.limits.autoReminders && rsvps.some((r) => r.response === "maybe") && (
+              <p className="mt-3 text-xs text-ink/55">Les relances WhatsApp sont incluses dans les formules Célébration et Prestige Pro.</p>
+            )}
+          </div>
+
+          {payments.length > 0 && (
+            <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-6">
+              <h2 className="text-lg font-semibold">Paiements</h2>
+              <ul className="mt-3 divide-y divide-ink/5 text-sm">
+                {payments.map((p) => (
+                  <li key={p.id} className="flex flex-wrap justify-between gap-2 py-2.5">
+                    <span>
+                      {PLANS[p.plan].name} · {formatFcfa(p.amount)}
+                    </span>
+                    <span className="text-ink/55">
+                      {formatShortDate(p.created_at)} ·{" "}
+                      {{ pending: "en attente", paid: "payé", failed: "échoué", expired: "expiré", cancelled: "annulé" }[p.status]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <ActionButton
+              action={archiveEvent.bind(null, id)}
+              variant="danger"
+              confirm="Archiver cette invitation ? Le lien sera désactivé et elle disparaîtra de votre liste."
+            >
+              Archiver l&apos;invitation
+            </ActionButton>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepItem({ n, done, title, children }: { n: number; done?: boolean; title: string; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-4">
+      <span
+        className={`flex size-8 shrink-0 items-center justify-center rounded-full font-heading text-sm font-bold ${done ? "bg-forest text-cream" : "border-2 border-ink/15 text-ink/50"}`}
+        aria-hidden="true"
+      >
+        {done ? "✓" : n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-sans text-[15px] font-bold">{title}</h3>
+        <div className="mt-1">{children}</div>
+      </div>
+    </li>
+  );
+}

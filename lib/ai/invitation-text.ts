@@ -29,7 +29,7 @@ const InvitationTextSchema = z.object({
     .describe("2 à 5 moments du programme, dans l'ordre"),
 });
 
-export type InvitationText = z.infer<typeof InvitationTextSchema> & { source: "ai" | "template" };
+export type InvitationText = z.infer<typeof InvitationTextSchema> & { source: "ai" | "template"; model?: string };
 
 const LANGUAGE_NAMES: Record<InvitationLanguage, string> = {
   fr: "français",
@@ -73,8 +73,11 @@ const getClient = () => (client ??= new Anthropic({ apiKey: serverEnv.anthropicA
  * Génère titre, message et programme. Ne lève jamais d'erreur : en cas
  * d'absence de clé, de refus ou de panne, on revient à un modèle de texte.
  */
-export async function generateInvitationText(input: InvitationTextInput): Promise<InvitationText> {
-  if (!features.aiText) return templateText(input);
+export async function generateInvitationText(
+  input: InvitationTextInput,
+  options: { allowAi?: boolean } = {},
+): Promise<InvitationText> {
+  if (!features.aiText || options.allowAi === false) return templateText(input);
 
   try {
     const response = await getClient().messages.parse({
@@ -94,6 +97,7 @@ export async function generateInvitationText(input: InvitationTextInput): Promis
       message: out.message.slice(0, 2000),
       program: out.program.slice(0, 8).map((p) => ({ time: p.time.slice(0, 20), label: p.label.slice(0, 120) })),
       source: "ai",
+      model: TEXT_MODEL,
     };
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) {
