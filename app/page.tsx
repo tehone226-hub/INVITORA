@@ -5,6 +5,7 @@ import { Hero } from "@/components/home/hero";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { Pricing } from "@/components/home/pricing";
 import { TemplateGallery } from "@/components/home/template-gallery";
+import { ThemeShowcase } from "@/components/home/theme-showcase";
 import { Testimonials } from "@/components/home/testimonials";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export default function Home() {
       <Hero />
       <EventTypes />
       <HowItWorks />
+      <ThemeShowcase />
       <TemplateGallery />
       <Pricing />
       {/* Témoignages d'exemple : seulement si le réglage l'autorise (règle 7) */}

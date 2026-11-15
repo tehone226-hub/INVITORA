@@ -1,3 +1,5 @@
+import Image from "next/image";
+import { THEMES } from "@/config/themes";
 import { ArrowRight, Check, CheckCheck, MessageCircle, Play, Star } from "lucide-react";
 import { sampleContent, siteConfig } from "@/config/site";
 import { heroInvitation } from "@/config/home";
@@ -133,6 +135,20 @@ function PhoneIllustration({ showSamples }: { showSamples: boolean }) {
         <circle cx="200" cy="200" r="140" fill="var(--gold)" opacity="0.28" />
       </svg>
 
+      {/* Cartes inclinées derrière le téléphone (profondeur) */}
+      <div
+        aria-hidden="true"
+        className="absolute top-[20%] left-[3%] h-[230px] w-[170px] -rotate-[9deg] overflow-hidden rounded-2xl border-4 border-white shadow-card-hover sm:left-[1%] sm:h-[250px] sm:w-[185px]"
+      >
+        <Image src={THEMES.bogolan.image} alt="" fill sizes="190px" className="object-cover" />
+      </div>
+      <div
+        aria-hidden="true"
+        className="absolute top-[34%] right-[3%] h-[230px] w-[170px] rotate-[8deg] overflow-hidden rounded-2xl border-4 border-white shadow-card-hover sm:right-[1%] sm:h-[250px] sm:w-[185px]"
+      >
+        <Image src={THEMES.tiebele.image} alt="" fill sizes="190px" className="object-cover" />
+      </div>
+
       {/* Téléphone */}
       <div className="relative mx-auto w-[250px] overflow-hidden rounded-[38px] border-[7px] border-ink bg-white shadow-float sm:w-[270px]">
         <InvitationCard
@@ -140,6 +156,8 @@ function PhoneIllustration({ showSamples }: { showSamples: boolean }) {
           category={inv.category}
           names={inv.names}
           size="lg"
+          sizes="260px"
+          eager
           className="h-[290px] sm:h-[310px]"
         />
         <div className="px-4 pt-4 pb-5 text-center">

@@ -12,7 +12,9 @@ export interface InvitationTheme {
   id: ThemeId;
   name: string;
   description: string;
-  /** Tuile SVG répétée en fond */
+  /** Fond illustré sans texte (scripts/generate-theme-art.mjs) */
+  image: string;
+  /** Tuile SVG répétée en fond (secours léger pendant le chargement) */
   pattern: string;
   /** Taille de la tuile, en pixels */
   tileSize: number;
@@ -33,6 +35,7 @@ function svgUrl(svg: string): string {
 export const THEMES: Record<ThemeId, InvitationTheme> = {
   "faso-dan-fani": {
     id: "faso-dan-fani",
+    image: "/demo/themes/faso-dan-fani.webp",
     name: "Faso Dan Fani",
     description: "L'étoffe tissée : bandes verticales terre cuite, vert et or.",
     tileSize: 48,
@@ -50,6 +53,7 @@ export const THEMES: Record<ThemeId, InvitationTheme> = {
   },
   bogolan: {
     id: "bogolan",
+    image: "/demo/themes/bogolan.webp",
     name: "Bogolan",
     description: "L'argile et la terre : motifs dessinés à la main sur fond écru.",
     tileSize: 64,
@@ -71,6 +75,7 @@ export const THEMES: Record<ThemeId, InvitationTheme> = {
   },
   tiebele: {
     id: "tiebele",
+    image: "/demo/themes/tiebele.webp",
     name: "Tiébélé",
     description: "Les murs peints : losanges noirs et blancs sur ocre.",
     tileSize: 48,
@@ -86,6 +91,7 @@ export const THEMES: Record<ThemeId, InvitationTheme> = {
   },
   indigo: {
     id: "indigo",
+    image: "/demo/themes/indigo.webp",
     name: "Indigo de Ouaga",
     description: "La nuit élégante : étoffe indigo, fines touches dorées.",
     tileSize: 56,

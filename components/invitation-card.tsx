@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { THEMES, type ThemeId } from "@/config/themes";
 import { cn } from "@/lib/utils";
 
@@ -9,12 +10,17 @@ interface InvitationCardProps {
   date?: string;
   place?: string;
   size?: "sm" | "lg";
+  /** Largeurs d'affichage, pour que Next.js serve une image à la bonne taille */
+  sizes?: string;
+  /** Image visible dès l'arrivée sur la page (hero) : chargement prioritaire */
+  eager?: boolean;
   className?: string;
 }
 
 /**
- * Aperçu d'invitation : fond à motif (sans texte) + textes posés en HTML par-dessus.
+ * Aperçu d'invitation : fond illustré SANS texte + textes posés en HTML par-dessus.
  * C'est le principe retenu pour les vraies invitations (règle 2 de CLAUDE.md).
+ * Le motif SVG sert de secours pendant le chargement de l'image.
  */
 export function InvitationCard({
   theme,
@@ -23,6 +29,8 @@ export function InvitationCard({
   date,
   place,
   size = "sm",
+  sizes = "(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw",
+  eager = false,
   className,
 }: InvitationCardProps) {
   const t = THEMES[theme];
@@ -31,16 +39,24 @@ export function InvitationCard({
 
   return (
     <div
-      className={cn("flex items-center justify-center", lg ? "p-5" : "p-4", className)}
+      className={cn("relative flex items-center justify-center overflow-hidden", lg ? "p-6" : "p-5", className)}
       style={{
         backgroundImage: t.pattern,
         backgroundSize: `${t.tileSize}px ${t.tileSize}px`,
       }}
     >
+      <Image
+        src={t.image}
+        alt=""
+        fill
+        sizes={sizes}
+        className="object-cover"
+        {...(eager ? { loading: "eager" as const, fetchPriority: "high" as const } : {})}
+      />
       <div
         className={cn(
-          "flex w-full flex-col items-center justify-center text-center shadow-[0_6px_20px_rgba(0,0,0,0.18)]",
-          lg ? "max-w-[220px] gap-2 rounded-xl px-4 py-7" : "max-w-[180px] gap-1.5 rounded-lg px-3 py-5",
+          "relative flex w-full flex-col items-center justify-center text-center shadow-[0_10px_30px_rgba(0,0,0,0.22)]",
+          lg ? "max-w-[200px] gap-2 rounded-xl px-4 py-7" : "max-w-[190px] gap-1.5 rounded-lg px-3 py-5",
         )}
         style={{
           backgroundColor: t.colors.panel,
@@ -58,7 +74,7 @@ export function InvitationCard({
         <span
           className={cn(
             "font-heading leading-tight font-semibold text-balance",
-            lg ? "text-[22px]" : "text-base",
+            lg ? "text-[22px]" : "text-[17px]",
           )}
         >
           {second !== undefined ? (

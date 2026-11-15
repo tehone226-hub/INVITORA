@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { Logo } from "@/components/logo";
+import { WovenBand } from "@/components/woven-band";
 
 export function SiteFooter() {
   const { routes } = siteConfig;
@@ -26,6 +27,7 @@ export function SiteFooter() {
 
   return (
     <footer className="bg-forest text-cream">
+      <WovenBand className="h-1.5" />
       <div className="mx-auto grid w-full max-w-[1180px] gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Logo tone="dark" />
