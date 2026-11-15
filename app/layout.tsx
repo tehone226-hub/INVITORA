@@ -30,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="fr"
+      data-scroll-behavior="smooth"
       className={`${fraunces.variable} ${nunito.variable} h-full scroll-smooth antialiased`}
     >
       <body className="flex min-h-full flex-col">
