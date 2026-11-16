@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ButtonLink } from "@/components/button-link";
 import { Notice } from "@/components/ui/notice";
 import { requireUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/neon/data";
 import type { PaymentRow } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Paiement", robots: { index: false } };

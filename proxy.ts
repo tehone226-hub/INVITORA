@@ -1,38 +1,29 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getAuth } from "@/lib/neon/auth";
 
 /**
- * Rafraîchit la session Supabase à chaque requête des espaces connectés.
- * (Next.js 16 : « proxy » remplace « middleware ».)
- * La vérification des droits se fait ensuite dans chaque page (lib/auth.ts).
+ * Rafraîchit la session Neon Auth et termine le retour de Google
+ * (paramètre neon_auth_session_verifier). Next.js 16 : « proxy » remplace « middleware ».
+ *
+ * On n'applique PAS la redirection automatique de Neon : chaque page protégée appelle
+ * requireUser(), qui redirige vers /connexion en mémorisant la page demandée (?suivant=).
  */
 export async function proxy(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return NextResponse.next();
+  const configured =
+    process.env.NEON_AUTH_BASE_URL && (process.env.NEON_AUTH_COOKIE_SECRET ?? "").length >= 32 && process.env.DATABASE_URL;
+  if (!configured) return NextResponse.next();
 
-  let response = NextResponse.next({ request });
+  const hasSession = request.cookies.getAll().some((c) => c.name.includes("neon-auth"));
+  const isOAuthReturn = request.nextUrl.searchParams.has("neon_auth_session_verifier");
+  if (!hasSession && !isOAuthReturn) return NextResponse.next();
 
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet, headers) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-        Object.entries(headers).forEach(([k, v]) => response.headers.set(k, v));
-      },
-    },
+  const middleware = getAuth().middleware({
+    loginUrl: "/connexion",
+    publicRoutes: ["/connexion", "/", "/creer", "/paiement", "/admin", "/tableau-de-bord"],
   });
-
-  // Ne rien placer entre la création du client et cet appel.
-  await supabase.auth.getUser();
-
-  return response;
+  return middleware(request);
 }
 
 export const config = {
-  matcher: ["/tableau-de-bord/:path*", "/admin/:path*", "/creer/:path*", "/paiement/:path*", "/auth/:path*", "/connexion"],
+  matcher: ["/tableau-de-bord/:path*", "/admin/:path*", "/creer/:path*", "/paiement/:path*", "/connexion", "/"],
 };

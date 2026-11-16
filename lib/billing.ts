@@ -1,8 +1,8 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
 import { PLANS, PLAN_DURATION_MONTHS, type PlanId } from "@/config/plans";
+import { db, rows } from "@/lib/neon/sql";
 import { getSessionStatus, type SessionStatus, type WebhookPayload } from "@/lib/saspay";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { PaymentRow } from "@/lib/types";
 
 /** Les sessions SasPay créées par Invitora expirent après ce délai (voir createCheckoutSession). */
@@ -26,15 +26,11 @@ export function computeExpiry(currentExpiry: string | null, now = new Date()): s
  * et l'événement reçoit sa formule, ou rien ne change. Idempotent.
  */
 async function activatePayment(payment: PaymentRow, transactionId: string): Promise<boolean> {
-  const admin = createAdminClient();
   const plan = PLANS[payment.plan as PlanId];
-  const { data: slug, error } = await admin.rpc("activate_payment", {
-    p_payment_id: payment.id,
-    p_transaction_id: transactionId,
-    p_guest_limit: plan.limits.guests,
-    p_months: PLAN_DURATION_MONTHS,
-  });
-  if (error) throw error;
+  const result = await rows<{ slug: string | null }>(
+    db()`select public.activate_payment(${payment.id}, ${transactionId}, ${plan.limits.guests}, ${PLAN_DURATION_MONTHS}) as slug`,
+  );
+  const slug = result[0]?.slug;
   if (!slug) return false; // déjà traité
   // La page invité (mise en cache) reflète tout de suite la formule active
   revalidateTag(`event-${slug}`, { expire: 0 });
@@ -57,61 +53,56 @@ const confirms = (s: SessionStatus, transactionId: string) =>
  */
 export async function handleWebhook(payload: WebhookPayload): Promise<WebhookOutcome> {
   if (payload.event !== "transaction.success") return "ignored";
-  const admin = createAdminClient();
+  const sql = db();
   const id = payload.data.id;
 
-  const { error: lockErr } = await admin
-    .from("webhook_events")
-    .insert({ id, event_type: payload.event, payload, status: "processing" });
+  // Réservation atomique de l'identifiant (clé primaire)
+  const inserted = await rows<{ id: string }>(
+    sql`insert into public.webhook_events (id, event_type, payload, status)
+        values (${id}, ${payload.event}, ${JSON.stringify(payload)}::jsonb, 'processing')
+        on conflict (id) do nothing returning id`,
+  );
 
-  if (lockErr) {
-    if (lockErr.code !== "23505") throw lockErr;
-    const { data: existing } = await admin.from("webhook_events").select("status, locked_at").eq("id", id).maybeSingle<{ status: string; locked_at: string }>();
-    if (!existing || existing.status === "done") return "duplicate";
-    if (Date.now() - new Date(existing.locked_at).getTime() < LOCK_TIMEOUT_MS) return "busy";
+  if (!inserted.length) {
+    const existing = await rows<{ status: string; locked_at: string }>(
+      sql`select status, locked_at from public.webhook_events where id = ${id}`,
+    );
+    const row = existing[0];
+    if (!row || row.status === "done") return "duplicate";
+    if (Date.now() - new Date(row.locked_at).getTime() < LOCK_TIMEOUT_MS) return "busy";
     // Traitement interrompu : on le reprend (un seul repreneur grâce à la condition sur locked_at).
-    const { data: taken } = await admin
-      .from("webhook_events")
-      .update({ locked_at: new Date().toISOString() })
-      .eq("id", id)
-      .eq("status", "processing")
-      .eq("locked_at", existing.locked_at)
-      .select("id")
-      .maybeSingle();
-    if (!taken) return "busy";
+    const taken = await rows<{ id: string }>(
+      sql`update public.webhook_events set locked_at = now()
+           where id = ${id} and status = 'processing' and locked_at = ${row.locked_at} returning id`,
+    );
+    if (!taken.length) return "busy";
   }
 
   try {
     const outcome = await matchAndActivate(payload);
     if (outcome === "activated" || outcome === "duplicate") {
-      await admin.from("webhook_events").update({ status: "done" }).eq("id", id);
+      await sql`update public.webhook_events set status = 'done' where id = ${id}`;
     } else {
       // Aucune correspondance : on libère l'identifiant pour que la nouvelle tentative de SasPay soit retraitée.
-      await admin.from("webhook_events").delete().eq("id", id);
+      await sql`delete from public.webhook_events where id = ${id}`;
     }
     return outcome;
   } catch (e) {
-    await admin.from("webhook_events").delete().eq("id", id);
+    await sql`delete from public.webhook_events where id = ${id}`;
     throw e;
   }
 }
 
 /** Retrouve la session de paiement qui correspond à la transaction et l'active si SasPay le confirme. */
 async function matchAndActivate(payload: WebhookPayload): Promise<WebhookOutcome> {
-  const admin = createAdminClient();
   const txId = payload.data.id;
 
-  const { data: pending, error } = await admin
-    .from("payments")
-    .select("*")
-    .eq("status", "pending")
-    .not("saspay_session_id", "is", null)
-    .gte("created_at", new Date(Date.now() - MATCH_WINDOW_HOURS * 3600_000).toISOString())
-    .order("created_at", { ascending: false })
-    .limit(60)
-    .returns<PaymentRow[]>();
-  if (error) throw error;
-  let candidates = pending ?? [];
+  let candidates = await rows<PaymentRow>(
+    db()`select * from public.payments
+          where status = 'pending' and saspay_session_id is not null
+            and created_at > now() - (${MATCH_WINDOW_HOURS}::float * interval '1 hour')
+          order by created_at desc limit 60`,
+  );
 
   // 1. Corrélation directe si SasPay renvoie nos métadonnées ou notre référence dans le webhook.
   const hint = extractPaymentHint(payload);
@@ -155,24 +146,26 @@ function extractPaymentHint(payload: WebhookPayload): string | null {
   return typeof candidate === "string" && /^[0-9a-f-]{36}$/i.test(candidate) ? candidate : null;
 }
 
+async function loadPayment(paymentId: string): Promise<PaymentRow | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(paymentId)) return null;
+  const found = await rows<PaymentRow>(db()`select * from public.payments where id = ${paymentId}`);
+  return found[0] ?? null;
+}
+
 /**
  * Vérifie un paiement en attente auprès de SasPay et met à jour son statut s'il a
  * expiré ou été annulé. N'ACTIVE JAMAIS la formule (règle 3 : il faut le webhook).
  */
 export async function refreshPaymentStatus(paymentId: string): Promise<"paid" | "pending" | "failed"> {
-  const admin = createAdminClient();
-  const { data: payment } = await admin.from("payments").select("*").eq("id", paymentId).single<PaymentRow>();
+  const payment = await loadPayment(paymentId);
   if (!payment) return "failed";
   if (payment.status === "paid") return "paid";
   if (payment.status !== "pending" || !payment.saspay_session_id) return "failed";
 
   const status = await getSessionStatus(payment.saspay_session_id);
   if (status.status === "EXPIRED" || status.status === "CANCELLED") {
-    await admin
-      .from("payments")
-      .update({ status: status.status === "EXPIRED" ? "expired" : "cancelled" })
-      .eq("id", payment.id)
-      .eq("status", "pending");
+    const next = status.status === "EXPIRED" ? "expired" : "cancelled";
+    await db()`update public.payments set status = ${next} where id = ${payment.id} and status = 'pending'`;
     return "failed";
   }
   return "pending";
@@ -183,17 +176,15 @@ export async function refreshPaymentStatus(paymentId: string): Promise<"paid" | 
  * UNIQUEMENT si l'API SasPay confirme PAID + SUCCESS. Action tracée dans webhook_events.
  */
 export async function adminForceActivation(paymentId: string, adminId: string): Promise<"activated" | "already" | "not_paid" | "failed"> {
-  const admin = createAdminClient();
-  const { data: payment } = await admin.from("payments").select("*").eq("id", paymentId).single<PaymentRow>();
+  const payment = await loadPayment(paymentId);
   if (!payment || !payment.saspay_session_id) return "failed";
   if (payment.status === "paid") return "already";
 
   const status = await getSessionStatus(payment.saspay_session_id);
   if (status.status !== "PAID" || status.transaction_status !== "SUCCESS" || !status.transaction_id) return "not_paid";
 
-  const { error } = await admin
-    .from("webhook_events")
-    .insert({ id: status.transaction_id, event_type: "admin.force_activation", payload: { status, adminId }, status: "done" });
-  if (error && error.code !== "23505") throw error;
+  await db()`insert into public.webhook_events (id, event_type, payload, status)
+             values (${status.transaction_id}, 'admin.force_activation', ${JSON.stringify({ status, adminId })}::jsonb, 'done')
+             on conflict (id) do nothing`;
   return (await activatePayment(payment, status.transaction_id)) ? "activated" : "already";
 }

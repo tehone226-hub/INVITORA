@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/neon/data";
 import type { EventRow, PaymentRow, ProfileRow } from "@/lib/types";
 
 /**

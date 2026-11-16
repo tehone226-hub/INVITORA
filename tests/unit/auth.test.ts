@@ -2,8 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
-vi.mock("@/lib/env", () => ({ isSupabaseConfigured: false, publicEnv: {} }));
+vi.mock("next/headers", () => ({ cookies: vi.fn() }));
+vi.mock("react", async (original) => ({ ...(await original<typeof import("react")>()), cache: <T>(fn: T) => fn }));
+vi.mock("@/lib/neon/data", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/neon/auth", () => ({ getAuth: vi.fn() }));
+vi.mock("@/lib/neon/sql", () => ({ db: vi.fn(), rows: vi.fn() }));
+vi.mock("@/lib/env", () => ({ isBackendConfigured: false, publicEnv: {} }));
 
 const { safeNextPath } = await import("@/lib/auth");
 

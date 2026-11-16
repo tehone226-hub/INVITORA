@@ -8,7 +8,7 @@ import { SetupRequired } from "@/components/setup-required";
 import { Notice } from "@/components/ui/notice";
 import { getAdminOverview } from "@/lib/admin";
 import { requireAdmin } from "@/lib/auth";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isBackendConfigured } from "@/lib/env";
 import { features } from "@/lib/env-server";
 import { formatFcfa, formatShortDate } from "@/lib/format";
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Administration", robots: { index: fa
 const n = (v: number) => v.toLocaleString("fr-FR");
 
 export default function AdminHome() {
-  if (!isSupabaseConfigured) return <SetupRequired what="l'administration" />;
+  if (!isBackendConfigured) return <SetupRequired what="l'administration" />;
   return (
     <Suspense fallback={<AdminSkeleton />}>
       <Overview />
@@ -29,7 +29,7 @@ async function Overview() {
   await requireAdmin();
   const o = await getAdminOverview();
   const missing = [
-    !features.serviceRole && "clé service Supabase",
+    !features.database && "clé service Supabase",
     !features.aiText && "Claude (textes)",
     !features.aiImage && "Gemini (images)",
     !features.payments && "SasPay (paiement)",

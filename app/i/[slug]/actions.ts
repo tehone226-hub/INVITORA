@@ -1,8 +1,7 @@
 "use server";
 
-import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { publicEnv } from "@/lib/env";
+import { db } from "@/lib/neon/sql";
 import { getPublicEvent, isPublic } from "@/lib/events";
 import type { ActionState } from "@/lib/types";
 
@@ -38,18 +37,14 @@ export async function submitRsvp(_prev: ActionState, formData: FormData): Promis
     return { ok: false, message: "La date limite de réponse est passée. Contactez directement l'organisateur." };
   }
 
-  const supabase = createAnonClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
   // Toute la logique (date limite, limite d'invités avec verrou, rythme) est dans la fonction SQL.
-  const { error } = await supabase.rpc("submit_rsvp", {
-    p_slug: r.slug,
-    p_name: r.name,
-    p_phone: r.phone ?? "",
-    p_response: r.response,
-    p_guests: r.response === "no" ? 1 : r.guests_count,
-    p_message: r.message ?? "",
-  });
+  let error: { message: string } | null = null;
+  try {
+    await db()`select public.submit_rsvp(${r.slug}, ${r.name}, ${r.phone ?? ""}, ${r.response},
+                                         ${r.response === "no" ? 1 : r.guests_count}, ${r.message ?? ""})`;
+  } catch (e) {
+    error = { message: e instanceof Error ? e.message : String(e) };
+  }
 
   if (error) {
     if (error.message.includes("guest_limit_reached")) {

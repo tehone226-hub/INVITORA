@@ -10,7 +10,7 @@ import { ActionButton } from "@/components/dashboard/action-button";
 import { CopyLink } from "@/components/dashboard/copy-link";
 import { RsvpLive } from "@/components/dashboard/rsvp-live";
 import { PlanBadge, StatusBadge } from "@/components/dashboard/status-badge";
-import { buttonClass } from "@/components/ui/form";
+import { buttonClass } from "@/components/ui/button-class";
 import { Notice } from "@/components/ui/notice";
 import { MAX_IMAGE_GENERATIONS } from "@/lib/ai/invitation-image";
 import { requireUser } from "@/lib/auth";
@@ -23,6 +23,7 @@ import {
   archiveEvent,
   checkPayment,
   deleteRsvp,
+  fetchRsvps,
   generateCover,
   publishEvent,
   regenerateText,
@@ -260,11 +261,11 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
               )}
             </div>
             <RsvpLive
-              eventId={id}
               initial={rsvps}
               guestLimit={event.guest_limit}
               reminderText={reminder}
               canRemind={Boolean(plan?.limits.autoReminders)}
+              onRefresh={fetchRsvps.bind(null, id)}
               onDelete={deleteRsvp.bind(null, id)}
             />
             {!plan?.limits.autoReminders && rsvps.some((r) => r.response === "maybe") && (

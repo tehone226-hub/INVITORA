@@ -9,7 +9,7 @@ import { parseWebhookPayload, verifyWebhookSignature } from "@/lib/saspay";
  * Événement à cocher : transaction.success (les autres sont enregistrés puis ignorés).
  */
 export async function POST(request: Request) {
-  if (!features.payments || !features.serviceRole) {
+  if (!features.payments || !features.database) {
     return NextResponse.json({ error: "paiement_non_configure" }, { status: 503 });
   }
 

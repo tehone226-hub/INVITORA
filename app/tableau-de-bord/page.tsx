@@ -8,7 +8,7 @@ import { InvitationCard } from "@/components/invitation-card";
 import { SetupRequired } from "@/components/setup-required";
 import { Notice } from "@/components/ui/notice";
 import { requireUser } from "@/lib/auth";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isBackendConfigured } from "@/lib/env";
 import { eventTypeLabel } from "@/lib/event-types";
 import { listMyEvents } from "@/lib/events";
 import { formatDate } from "@/lib/format";
@@ -16,7 +16,7 @@ import { formatDate } from "@/lib/format";
 export const metadata: Metadata = { title: "Mes invitations", robots: { index: false } };
 
 export default function DashboardPage(props: PageProps<"/tableau-de-bord">) {
-  if (!isSupabaseConfigured) return <SetupRequired what="votre espace" />;
+  if (!isBackendConfigured) return <SetupRequired what="votre espace" />;
   return (
     <section className="mx-auto w-full max-w-[1180px] px-5 py-10">
       <Suspense fallback={<DashboardSkeleton />}>

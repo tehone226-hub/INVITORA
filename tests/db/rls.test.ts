@@ -1,7 +1,7 @@
 /**
  * Vérifie le schéma et les règles de sécurité (RLS, fonctions) de la migration Supabase
  * sur un vrai PostgreSQL local (PGlite), avec une simulation minimale de
- * l'environnement Supabase (schémas auth et storage, rôles anon/authenticated).
+ * l'environnement Neon (rôle authenticated de l'API de données, auth.uid() lu dans le JWT).
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -12,36 +12,31 @@ const A = "11111111-1111-1111-1111-111111111111";
 const B = "22222222-2222-2222-2222-222222222222";
 const ADMIN = "33333333-3333-3333-3333-333333333333";
 
-const SUPABASE_STUB = `
-  create role anon nologin;
-  create role authenticated nologin;
+const NEON_STUB = `
+  -- Neon crée le rôle « authenticated » (API de données) ; le propriétaire de la base (ici service_role,
+  -- qui contourne la RLS) fait les opérations de confiance côté serveur.
   create role service_role nologin bypassrls;
-  grant usage on schema public to anon, authenticated, service_role;
-  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-  alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+  grant usage, create on schema public to service_role;
+  alter default privileges in schema public grant all on tables to service_role;
+  alter default privileges in schema public grant all on functions to service_role;
 
+  -- auth.uid() fourni par l'extension pg_session_jwt de Neon : lit la revendication « sub » du JWT
   create schema auth;
-  grant usage on schema auth to anon, authenticated, service_role;
-  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}'::jsonb);
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-  grant execute on function auth.uid() to anon, authenticated, service_role;
-
-  create schema storage;
-  grant usage on schema storage to anon, authenticated, service_role;
-  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
-  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
-  alter table storage.objects enable row level security;
-  grant select on all tables in schema storage to service_role;
-
-  create publication supabase_realtime;
 `;
 
 let db: PGlite;
 
-/** Exécute une requête avec l'identité donnée (null = visiteur anonyme, "service" = serveur). */
+/**
+ * Exécute une requête avec l'identité donnée :
+ * - un identifiant = utilisateur connecté (rôle authenticated, jeton avec ce « sub ») ;
+ * - null = jeton valide SANS utilisateur connu (auth.uid() est nul) ;
+ * - "service" = le serveur (connexion propriétaire, contourne la RLS).
+ * Un visiteur sans jeton est refusé par l'API de données avant d'atteindre la base.
+ */
 async function as<T = Record<string, unknown>>(who: string | null | "service", sql: string, params: unknown[] = []) {
-  const role = who === "service" ? "service_role" : who ? "authenticated" : "anon";
+  const role = who === "service" ? "service_role" : "authenticated";
   await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${who && who !== "service" ? who : ""}', false);`);
   await db.exec(`set role ${role};`);
   try {
@@ -52,7 +47,7 @@ async function as<T = Record<string, unknown>>(who: string | null | "service", s
 }
 
 const rsvp = (slug: string, name = "Moussa", response = "yes", guests = 1) =>
-  as(null, "select public.submit_rsvp($1, $2, '', $3, $4, '')", [slug, name, response, guests]);
+  as("service", "select public.submit_rsvp($1, $2, '', $3, $4, '')", [slug, name, response, guests]);
 
 async function createEvent(owner: string, slug: string) {
   const rows = await as<{ id: string }>(
@@ -74,27 +69,22 @@ async function activate(eventId: string, guestLimit: number | null) {
 
 beforeAll(async () => {
   db = new PGlite();
-  await db.exec(SUPABASE_STUB);
+  await db.exec(NEON_STUB);
   const migration = readFileSync(
-    path.join(process.cwd(), "supabase/migrations/20261115000000_init.sql"),
+    path.join(process.cwd(), "db/migrations/20261116000000_init.sql"),
     "utf8",
   );
   await db.exec(migration);
+  await db.exec("grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;");
   await db.exec(`
-    insert into auth.users (id, email, raw_user_meta_data) values
-      ('${A}', 'a@test.bf', '{"full_name":"Awa"}'),
-      ('${B}', 'b@test.bf', '{}'),
-      ('${ADMIN}', 'admin@test.bf', '{}');
-    update public.profiles set role = 'admin' where id = '${ADMIN}';
+    insert into public.profiles (id, email, full_name, role) values
+      ('${A}', 'a@test.bf', 'Awa', 'user'),
+      ('${B}', 'b@test.bf', null, 'user'),
+      ('${ADMIN}', 'admin@test.bf', null, 'admin');
   `);
 }, 60_000);
 
 describe("profils", () => {
-  it("le trigger crée un profil à l'inscription", async () => {
-    const rows = await as(A, "select full_name from public.profiles where id = $1", [A]);
-    expect(rows).toEqual([{ full_name: "Awa" }]);
-  });
-
   it("un utilisateur ne voit pas le profil des autres", async () => {
     const rows = await as(A, "select id from public.profiles");
     expect(rows.map((r) => r.id)).toEqual([A]);
@@ -116,7 +106,7 @@ describe("événements : cloisonnement", () => {
     const id = await createEvent(A, "brouillon-aaaa-0001");
     expect(await as(A, "select id from public.events where id = $1", [id])).toHaveLength(1);
     expect(await as(B, "select id from public.events where id = $1", [id])).toHaveLength(0);
-    await expect(as(null, "select id from public.events where id = $1", [id])).rejects.toThrow();
+    expect(await as(null, "select id from public.events where id = $1", [id])).toHaveLength(0);
   });
 
   it("l'organisateur ne peut pas s'attribuer une formule", async () => {
@@ -129,7 +119,7 @@ describe("événements : cloisonnement", () => {
   it("H1 : un événement publié et payé n'est PAS listable par un visiteur ni par un autre compte", async () => {
     const id = await createEvent(A, "public-aaaa-0004");
     await activate(id, null);
-    await expect(as(null, "select slug from public.events")).rejects.toThrow();
+    expect(await as(null, "select slug from public.events")).toHaveLength(0);
     expect(await as(B, "select id from public.events where id = $1", [id])).toHaveLength(0);
   });
 
@@ -164,7 +154,7 @@ describe("page invité : get_public_event", () => {
   it("renvoie l'invitation publiée et payée, sans données internes", async () => {
     const id = await createEvent(A, "invite-aaaa-0030");
     await activate(id, null);
-    const rows = await as<Record<string, unknown>>(null, "select * from public.get_public_event('invite-aaaa-0030')");
+    const rows = await as<Record<string, unknown>>("service", "select * from public.get_public_event('invite-aaaa-0030')");
     expect(rows).toHaveLength(1);
     expect(rows[0].title).toBe("Mariage test");
     expect(Object.keys(rows[0])).not.toContain("owner_id");
@@ -177,19 +167,19 @@ describe("page invité : get_public_event", () => {
     const paid = await createEvent(A, "nonpaye-aaaa-0032");
     await as(A, "update public.events set status = 'published' where id = $1", [paid]);
     for (const slug of ["brouillon-aaaa-0031", "nonpaye-aaaa-0032", "inconnu-aaaa-0000"]) {
-      expect(await as(null, "select * from public.get_public_event($1)", [slug])).toHaveLength(0);
+      expect(await as("service", "select * from public.get_public_event($1)", [slug])).toHaveLength(0);
     }
   });
 
   it("M6 : une invitation suspendue par l'administration n'est plus publique, et l'organisateur ne peut pas la rétablir", async () => {
     const id = await createEvent(A, "suspendu-aaaa-0033");
     await activate(id, null);
-    expect(await as(null, "select * from public.get_public_event('suspendu-aaaa-0033')")).toHaveLength(1);
+    expect(await as("service", "select * from public.get_public_event('suspendu-aaaa-0033')")).toHaveLength(1);
     await as("service", "update public.events set status = 'draft', blocked_at = now() where id = $1", [id]);
     // L'organisateur republie : toujours invisible, et blocked_at n'est pas modifiable par lui
     await as(A, "update public.events set status = 'published' where id = $1", [id]);
     await expect(as(A, "update public.events set blocked_at = null where id = $1", [id])).rejects.toThrow();
-    expect(await as(null, "select * from public.get_public_event('suspendu-aaaa-0033')")).toHaveLength(0);
+    expect(await as("service", "select * from public.get_public_event('suspendu-aaaa-0033')")).toHaveLength(0);
   });
 });
 
@@ -296,7 +286,7 @@ describe("activation d'une formule : activate_payment", () => {
   });
 });
 
-describe("paiements, webhooks, réglages, stockage", () => {
+describe("paiements, webhooks, réglages", () => {
   it("un utilisateur ne peut pas créer de paiement lui-même", async () => {
     const id = await createEvent(A, "paiement-aaaa-0010");
     await expect(
@@ -304,10 +294,15 @@ describe("paiements, webhooks, réglages, stockage", () => {
     ).rejects.toThrow();
   });
 
-  it("les webhooks sont invisibles des clients", async () => {
+  it("les webhooks sont inaccessibles à l'API de données (aucun droit)", async () => {
     await as("service", "insert into public.webhook_events (id, event_type, payload) values ('tx_1', 'transaction.success', '{}')");
-    expect(await as(A, "select id from public.webhook_events")).toHaveLength(0);
-    await expect(as(null, "select id from public.webhook_events")).resolves.toHaveLength(0);
+    await expect(as(A, "select id from public.webhook_events")).rejects.toThrow();
+    await expect(as(A, "insert into public.webhook_events (id, event_type, payload) values ('tx_2', 'x', '{}')")).rejects.toThrow();
+  });
+
+  it("H3 : un traitement de webhook en cours est distinct d'un traitement terminé", async () => {
+    const rows = await as<{ status: string }>("service", "select status from public.webhook_events where id = 'tx_1'");
+    expect(rows[0].status).toBe("processing");
   });
 
   it("un même webhook ne peut être enregistré qu'une fois", async () => {
@@ -324,16 +319,5 @@ describe("paiements, webhooks, réglages, stockage", () => {
     await as(ADMIN, "update public.app_settings set value = 'true' where key = 'show_sample_content'");
     rows = await as(null, "select value from public.app_settings where key = 'show_sample_content'");
     expect(rows[0].value).toBe(true);
-  });
-
-  it("M4 : le stockage n'accepte que des images légères et aucune écriture par les clients", async () => {
-    const rows = await as<{ file_size_limit: string; allowed_mime_types: string[] }>(
-      "service",
-      "select file_size_limit::text, allowed_mime_types from storage.buckets where id = 'invitations'",
-    );
-    expect(Number(rows[0].file_size_limit)).toBeLessThanOrEqual(3 * 1024 * 1024);
-    expect(rows[0].allowed_mime_types).toEqual(["image/png", "image/jpeg", "image/webp"]);
-    const policies = await as<{ policyname: string }>("service", "select policyname from pg_policies where schemaname = 'storage'");
-    expect(policies).toEqual([]);
   });
 });

@@ -7,14 +7,14 @@ import { requireAdmin } from "@/lib/auth";
 import { adminForceActivation, computeExpiry, refreshPaymentStatus } from "@/lib/billing";
 import { features } from "@/lib/env-server";
 import { eventTag } from "@/lib/events";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { db, rows } from "@/lib/neon/sql";
 import type { ActionState } from "@/lib/types";
 
 /** Toutes les actions d'administration revérifient le rôle côté serveur. */
 async function guard() {
   const admin = await requireAdmin();
-  if (!features.serviceRole) throw new Error("SUPABASE_SERVICE_ROLE_KEY manquante.");
-  return { admin, db: createAdminClient() };
+  if (!features.database) throw new Error("DATABASE_URL manquante.");
+  return { admin, sql: db() };
 }
 
 const fail = (e: unknown): ActionState => {
@@ -25,10 +25,10 @@ const fail = (e: unknown): ActionState => {
 
 export async function setUserRole(userId: string, role: "user" | "admin"): Promise<ActionState> {
   try {
-    const { admin, db } = await guard();
+    const { admin, sql } = await guard();
+    if (!/^[0-9a-f-]{36}$/i.test(userId) || (role !== "user" && role !== "admin")) return { ok: false, message: "Demande invalide." };
     if (userId === admin.id && role === "user") return { ok: false, message: "Vous ne pouvez pas retirer votre propre rôle d'administrateur." };
-    const { error } = await db.from("profiles").update({ role }).eq("id", userId);
-    if (error) throw error;
+    await sql`update public.profiles set role = ${role} where id = ${userId}`;
     return { ok: true, message: role === "admin" ? "Rôle administrateur attribué." : "Rôle administrateur retiré." };
   } catch (e) {
     return fail(e);
@@ -37,13 +37,17 @@ export async function setUserRole(userId: string, role: "user" | "admin"): Promi
 
 export async function setEventStatus(eventId: string, status: "draft" | "published" | "archived"): Promise<ActionState> {
   try {
-    const { db } = await guard();
+    const { sql } = await guard();
+    if (!["draft", "published", "archived"].includes(status)) return { ok: false, message: "Statut inconnu." };
     // Dépublier ou archiver par l'administration SUSPEND l'invitation : l'organisateur ne peut pas la remettre en ligne.
     // Publier lève la suspension.
-    const blocked_at = status === "published" ? null : new Date().toISOString();
-    const { data, error } = await db.from("events").update({ status, blocked_at }).eq("id", eventId).select("slug").single<{ slug: string }>();
-    if (error) throw error;
-    updateTag(eventTag(data.slug));
+    const updated = await rows<{ slug: string }>(
+      sql`update public.events
+             set status = ${status}, blocked_at = ${status === "published" ? null : new Date().toISOString()}
+           where id = ${eventId} returning slug`,
+    );
+    if (!updated[0]) return { ok: false, message: "Invitation introuvable." };
+    updateTag(eventTag(updated[0].slug));
     return { ok: true, message: "Statut mis à jour." };
   } catch (e) {
     return fail(e);
@@ -53,16 +57,16 @@ export async function setEventStatus(eventId: string, status: "draft" | "publish
 /** Offrir une formule (geste commercial, partenaire…) : décision humaine de l'administrateur. */
 export async function grantPlan(eventId: string, plan: PlanId): Promise<ActionState> {
   try {
-    const { db } = await guard();
+    const { sql } = await guard();
     if (!Object.hasOwn(PLANS, plan)) return { ok: false, message: "Formule inconnue." };
-    const { data: ev, error: e1 } = await db.from("events").select("slug, plan_expires_at").eq("id", eventId).single<{ slug: string; plan_expires_at: string | null }>();
-    if (e1) throw e1;
-    const { error } = await db
-      .from("events")
-      .update({ plan, plan_expires_at: computeExpiry(ev.plan_expires_at), guest_limit: PLANS[plan].limits.guests })
-      .eq("id", eventId);
-    if (error) throw error;
-    updateTag(eventTag(ev.slug));
+    const current = await rows<{ slug: string; plan_expires_at: string | null }>(
+      sql`select slug, plan_expires_at from public.events where id = ${eventId}`,
+    );
+    if (!current[0]) return { ok: false, message: "Invitation introuvable." };
+    await sql`update public.events
+                 set plan = ${plan}, plan_expires_at = ${computeExpiry(current[0].plan_expires_at)}, guest_limit = ${PLANS[plan].limits.guests}
+               where id = ${eventId}`;
+    updateTag(eventTag(current[0].slug));
     return { ok: true, message: `Formule ${PLANS[plan].name} offerte pour 3 mois.` };
   } catch (e) {
     return fail(e);
@@ -71,10 +75,9 @@ export async function grantPlan(eventId: string, plan: PlanId): Promise<ActionSt
 
 export async function deleteEvent(eventId: string): Promise<ActionState> {
   try {
-    const { db } = await guard();
-    const { data, error } = await db.from("events").delete().eq("id", eventId).select("slug").maybeSingle<{ slug: string }>();
-    if (error) throw error;
-    if (data) updateTag(eventTag(data.slug));
+    const { sql } = await guard();
+    const deleted = await rows<{ slug: string }>(sql`delete from public.events where id = ${eventId} returning slug`);
+    if (deleted[0]) updateTag(eventTag(deleted[0].slug));
     return { ok: true, message: "Invitation supprimée définitivement." };
   } catch (e) {
     return fail(e);
@@ -109,15 +112,13 @@ export async function adminActivatePayment(paymentId: string): Promise<ActionSta
 
 export async function updateSettings(_prev: ActionState, formData: FormData): Promise<ActionState> {
   try {
-    const { db } = await guard();
+    const { sql } = await guard();
     const show = formData.get("show_sample_content") === "on";
     const maintenance = String(formData.get("maintenance_message") ?? "").trim().slice(0, 200);
-    const now = new Date().toISOString();
-    const { error } = await db.from("app_settings").upsert([
-      { key: "show_sample_content", value: show, updated_at: now },
-      { key: "maintenance_message", value: maintenance, updated_at: now },
-    ]);
-    if (error) throw error;
+    await sql`insert into public.app_settings (key, value, updated_at) values
+                ('show_sample_content', ${JSON.stringify(show)}::jsonb, now()),
+                ('maintenance_message', ${JSON.stringify(maintenance)}::jsonb, now())
+              on conflict (key) do update set value = excluded.value, updated_at = now()`;
     revalidateTag("settings", { expire: 0 });
     return { ok: true, message: "Réglages enregistrés. La page d'accueil est mise à jour." };
   } catch (e) {

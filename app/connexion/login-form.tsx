@@ -1,46 +1,72 @@
 "use client";
 
 import { useActionState } from "react";
-import { Mail } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 import { Field, Input, SubmitButton } from "@/components/ui/form";
 import { Notice } from "@/components/ui/notice";
-import type { ActionState } from "@/lib/types";
-import { sendMagicLink, signInWithGoogle } from "./actions";
+import { sendLoginCode, signInWithGoogle, verifyLoginCode, type LoginState } from "./actions";
 
 export function LoginForm({ next }: { next: string }) {
-  const [state, action] = useActionState<ActionState, FormData>(sendMagicLink, null);
+  const [sent, sendAction] = useActionState<LoginState, FormData>(sendLoginCode, null);
+  const [checked, verifyAction] = useActionState<LoginState, FormData>(verifyLoginCode, null);
 
-  if (state?.ok) {
-    return (
-      <Notice tone="success" title="Vérifiez votre boîte e-mail">
-        <p className="mt-1">{state.message}</p>
-      </Notice>
-    );
-  }
+  // Le dernier résultat « code » prime ; une erreur de vérification renvoie à l'étape voulue.
+  const state: LoginState = checked ?? sent;
+  const onCodeStep = state?.step === "code";
+  const email = onCodeStep ? state.email : "";
 
   return (
     <div className="space-y-6">
-      <form action={action} className="space-y-4" noValidate>
-        <input type="hidden" name="suivant" value={next} />
-        <Field id="email" label="Votre adresse e-mail" error={state?.fieldErrors?.email}>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            placeholder="awa@gmail.com"
-            required
-            aria-invalid={Boolean(state?.fieldErrors?.email)}
-          />
-        </Field>
-        {state?.message && !state.ok && <Notice tone="error">{state.message}</Notice>}
-        <SubmitButton className="w-full" pendingLabel="Envoi du lien…">
-          <Mail />
-          Recevoir mon lien de connexion
-        </SubmitButton>
-        <p className="text-center text-[13px] text-ink/55">Pas de mot de passe : un lien sécurisé vous est envoyé par e-mail.</p>
-      </form>
+      {!onCodeStep ? (
+        <form action={sendAction} className="space-y-4" noValidate>
+          <Field id="email" label="Votre adresse e-mail" error={state?.fieldErrors?.email}>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="awa@gmail.com"
+              required
+              aria-invalid={Boolean(state?.fieldErrors?.email)}
+            />
+          </Field>
+          {state?.message && <Notice tone="error">{state.message}</Notice>}
+          <SubmitButton className="w-full" pendingLabel="Envoi du code…">
+            <Mail />
+            Recevoir mon code par e-mail
+          </SubmitButton>
+          <p className="text-center text-[13px] text-ink/55">Pas de mot de passe : un code à 6 chiffres vous est envoyé.</p>
+        </form>
+      ) : (
+        <form action={verifyAction} className="space-y-4" noValidate>
+          <input type="hidden" name="email" value={email} />
+          <input type="hidden" name="suivant" value={next} />
+          {state?.message && <Notice tone={state.fieldErrors || checked ? "error" : "success"}>{state.message}</Notice>}
+          <Field id="code" label="Code reçu par e-mail" error={state?.fieldErrors?.code}>
+            <Input
+              id="code"
+              name="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              placeholder="123456"
+              className="text-center font-heading text-2xl tracking-[0.4em]"
+              required
+              autoFocus
+              aria-invalid={Boolean(state?.fieldErrors?.code)}
+            />
+          </Field>
+          <SubmitButton className="w-full" pendingLabel="Vérification…">
+            <KeyRound />
+            Me connecter
+          </SubmitButton>
+          <a href="/connexion" className="block text-center text-sm font-bold text-terracotta underline underline-offset-4">
+            Changer d&apos;adresse e-mail
+          </a>
+        </form>
+      )}
 
       <div className="flex items-center gap-3 text-xs font-bold tracking-wider text-ink/40 uppercase">
         <span className="h-px flex-1 bg-ink/10" />

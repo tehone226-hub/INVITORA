@@ -1,45 +1,30 @@
 -- =====================================================================
--- Invitora — schéma initial
+-- Invitora — schéma initial pour Neon (Postgres + Neon Auth + API de données)
 -- Règle 5 (CLAUDE.md) : RLS sur toutes les tables. Un organisateur ne voit
--- que ses événements ; le public peut seulement lire un événement publié
--- (et payé) et créer une réponse RSVP.
+-- que ses événements. Les invités passent par des fonctions SQL ciblées
+-- (get_public_event, submit_rsvp) appelées uniquement par le serveur.
+-- Les comptes sont dans neon_auth."user" ; l'API de données (rôle « authenticated »)
+-- lit l'identité dans le jeton JWT via auth.uid().
 -- =====================================================================
 
+-- Rôles utilisés par l'API de données de Neon
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------
--- Profils (1 par compte Supabase Auth)
+-- Profils (1 par compte Neon Auth ; créés à la première connexion par le serveur)
 -- ---------------------------------------------------------------------
 create table public.profiles (
-  id          uuid primary key references auth.users (id) on delete cascade,
+  id          uuid primary key,
   email       text,
   full_name   text,
   phone       text,
   role        text not null default 'user' check (role in ('user', 'admin')),
   created_at  timestamptz not null default now()
 );
-
--- Création automatique du profil à l'inscription
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  insert into public.profiles (id, email, full_name)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name')
-  )
-  on conflict (id) do nothing;
-  return new;
-end;
-$$;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
 
 -- Vrai si l'utilisateur connecté est administrateur
 create or replace function public.is_admin()
@@ -215,7 +200,7 @@ create policy "profil : admin modifie tout" on public.profiles
   for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
 
 -- L'organisateur ne peut pas changer son rôle : seules ces colonnes lui sont ouvertes
-revoke update on public.profiles from authenticated, anon;
+revoke update on public.profiles from authenticated;
 grant update (full_name, phone) on public.profiles to authenticated;
 
 -- events
@@ -233,16 +218,13 @@ create policy "événement : suppression par le propriétaire ou admin" on publi
   for delete to authenticated using (owner_id = (select auth.uid()) or (select public.is_admin()));
 
 -- Les colonnes de formule ne sont modifiables que par le serveur (service role)
-revoke insert, update on public.events from authenticated, anon;
+revoke insert, update on public.events from authenticated;
 grant insert (slug, event_type, title, hosts, starts_at, venue, city, address, maps_url, message,
               program, dress_code, rsvp_deadline, contact_phone, language, theme, cover_image_url, status)
   on public.events to authenticated;
 grant update (event_type, title, hosts, starts_at, venue, city, address, maps_url, message,
               program, dress_code, rsvp_deadline, contact_phone, language, theme, cover_image_url, status)
   on public.events to authenticated;
--- Aucun accès anonyme direct aux invitations ni aux réponses
-revoke all on public.events from anon;
-revoke insert, update, delete on public.rsvps from anon, authenticated;
 
 -- rsvps
 -- Pas d'insertion directe de réponse : tout passe par submit_rsvp().
@@ -267,22 +249,9 @@ create policy "ia : lecture par soi ou admin" on public.ai_usage
 
 -- app_settings
 create policy "réglages : lecture publique" on public.app_settings
-  for select to anon, authenticated using (true);
+  for select to authenticated using (true);
 create policy "réglages : modification admin" on public.app_settings
   for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
-
--- =====================================================================
--- Temps réel : nouvelles réponses RSVP (filtré par RLS)
--- =====================================================================
-alter publication supabase_realtime add table public.rsvps;
-
--- =====================================================================
--- Stockage : images d'invitation (lecture publique ; écriture par le serveur uniquement)
--- =====================================================================
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('invitations', 'invitations', true, 3145728, array['image/png', 'image/jpeg', 'image/webp'])
-on conflict (id) do update
-  set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 -- =====================================================================
 -- Fonctions publiques (invités) — exécutées avec les droits du propriétaire de la base
@@ -344,10 +313,9 @@ begin
 end;
 $$;
 
-revoke execute on function public.get_public_event(text) from public;
-revoke execute on function public.submit_rsvp(text, text, text, text, integer, text) from public;
-grant execute on function public.get_public_event(text) to anon, authenticated, service_role;
-grant execute on function public.submit_rsvp(text, text, text, text, integer, text) to anon, authenticated, service_role;
+-- Appelées uniquement par le serveur (connexion propriétaire) : aucune exécution pour les autres rôles
+revoke execute on function public.get_public_event(text) from public, authenticated;
+revoke execute on function public.submit_rsvp(text, text, text, text, integer, text) from public, authenticated;
 
 -- =====================================================================
 -- Activation d'une formule : UNE transaction (paiement + événement), serveur uniquement
@@ -382,5 +350,14 @@ begin
 end;
 $$;
 
-revoke execute on function public.activate_payment(uuid, text, integer, integer) from public, anon, authenticated;
-grant execute on function public.activate_payment(uuid, text, integer, integer) to service_role;
+revoke execute on function public.activate_payment(uuid, text, integer, integer) from public, authenticated;
+
+-- =====================================================================
+-- Droits de l'API de données (rôle « authenticated ») : strict minimum, filtré ensuite par la RLS
+-- =====================================================================
+grant usage on schema public to authenticated;
+grant execute on function public.is_admin() to authenticated;
+grant execute on function public.event_is_public(public.events) to authenticated;
+grant select on public.profiles, public.events, public.rsvps, public.payments, public.ai_usage, public.app_settings to authenticated;
+grant delete on public.events, public.rsvps to authenticated;
+grant update on public.app_settings to authenticated;

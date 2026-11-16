@@ -1,7 +1,10 @@
 import "server-only";
+import { cache } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { isSupabaseConfigured } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
+import { isBackendConfigured } from "@/lib/env";
+import { getAuth } from "@/lib/neon/auth";
+import { db, rows } from "@/lib/neon/sql";
 import type { ProfileRow } from "@/lib/types";
 
 export interface CurrentUser {
@@ -11,29 +14,45 @@ export interface CurrentUser {
   isAdmin: boolean;
 }
 
+const adminEmails = () =>
+  (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
 /**
  * Couche d'accès aux données : la seule façon de lire l'utilisateur connecté.
  * Toujours appelée côté serveur, derrière une zone <Suspense> (Cache Components).
+ * Au premier passage, le profil est créé ; les e-mails de ADMIN_EMAILS deviennent administrateurs.
+ * Mis en cache pour la durée d'une requête.
  */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  if (!isSupabaseConfigured) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  if (!isBackendConfigured) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, phone, role, created_at")
-    .eq("id", data.user.id)
-    .maybeSingle<ProfileRow>();
+  // Lire les cookies d'abord : pendant le pré-rendu, la page attend la requête (zone Suspense) au lieu
+  // de laisser le SDK d'authentification échouer et journaliser une erreur.
+  await cookies();
+  const { data } = await getAuth().getSession();
+  const user = data?.user;
+  if (!user?.id) return null;
 
-  return {
-    id: data.user.id,
-    email: data.user.email ?? null,
-    profile: profile ?? null,
-    isAdmin: profile?.role === "admin",
-  };
-}
+  const email = user.email ?? null;
+  const sql = db();
+  const makeAdmin = Boolean(email && adminEmails().includes(email.toLowerCase()));
+
+  // Profil créé à la première connexion (idempotent) ; promotion administrateur si l'e-mail est autorisé.
+  const profiles = await rows<ProfileRow>(sql`
+    insert into public.profiles (id, email, full_name, role)
+    values (${user.id}, ${email}, ${user.name ?? null}, ${makeAdmin ? "admin" : "user"})
+    on conflict (id) do update
+      set email = excluded.email,
+          role = case when ${makeAdmin}::boolean then 'admin' else public.profiles.role end
+    returning id, email, full_name, phone, role, created_at
+  `);
+  const profile = profiles[0] ?? null;
+
+  return { id: user.id, email, profile, isAdmin: profile?.role === "admin" };
+});
 
 /** Exige une connexion ; sinon renvoie vers /connexion puis revient ici. */
 export async function requireUser(next = "/tableau-de-bord"): Promise<CurrentUser> {
@@ -51,7 +70,7 @@ export async function requireAdmin(): Promise<CurrentUser> {
 
 /**
  * N'accepte qu'un chemin interne pour les redirections après connexion.
- * Refuse « // », les antislashs et les caractères de contrôle (« /\evil.com » serait
+ * Refuse « // », les antislashs et les caractères de contrôle (« /\\evil.com » serait
  * interprété comme un autre site par les navigateurs), puis revérifie avec l'analyseur d'URL.
  */
 export function safeNextPath(value: unknown, fallback = "/tableau-de-bord"): string {

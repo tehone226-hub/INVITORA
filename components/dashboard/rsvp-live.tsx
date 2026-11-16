@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, Trash2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 import type { ActionState, RsvpRow } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +11,9 @@ const TONES = {
   no: "bg-red-50 text-red-700",
   maybe: "bg-[#FBF1DC] text-[#8A5A12]",
 } as const;
+
+/** Intervalle d'actualisation automatique des réponses (page visible uniquement). */
+const REFRESH_MS = 8_000;
 
 function stats(rows: RsvpRow[]) {
   const yes = rows.filter((r) => r.response === "yes");
@@ -33,47 +35,53 @@ const timeFmt = new Intl.DateTimeFormat("fr-FR", {
 });
 
 /**
- * Réponses des invités, mises à jour en temps réel (Supabase Realtime,
- * filtré par la sécurité RLS : l'organisateur ne reçoit que ses réponses).
+ * Réponses des invités, actualisées automatiquement (toutes les 8 secondes tant que la page
+ * est affichée). Les données viennent de l'API de données Neon, filtrées par la sécurité par
+ * ligne : l'organisateur ne reçoit que les réponses de ses propres invitations.
  */
 export function RsvpLive({
-  eventId,
   initial,
   guestLimit,
   reminderText,
   canRemind,
+  onRefresh,
   onDelete,
 }: {
-  eventId: string;
   initial: RsvpRow[];
   guestLimit: number | null;
   reminderText: string;
   canRemind: boolean;
+  onRefresh: () => Promise<RsvpRow[]>;
   onDelete: (rsvpId: string) => Promise<ActionState>;
 }) {
   const [rows, setRows] = useState<RsvpRow[]>(initial);
-  const [live, setLive] = useState(false);
+  const [live, setLive] = useState(true);
   const [filter, setFilter] = useState<"all" | "yes" | "no" | "maybe">("all");
+  const refresh = useRef(onRefresh);
+  useEffect(() => {
+    refresh.current = onRefresh; // dernière version de la fonction, sans écrire dans la ref pendant l'affichage
+  }, [onRefresh]);
+
+  const poll = useCallback(async () => {
+    try {
+      setRows(await refresh.current());
+      setLive(true);
+    } catch {
+      setLive(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`rsvps-${eventId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` }, (payload) => {
-        const row = payload.new as RsvpRow;
-        setRows((prev) => (prev.some((r) => r.id === row.id) ? prev : [row, ...prev]));
-      })
-      // Les suppressions ne peuvent pas être filtrées par Realtime : on retire par identifiant
-      // (sans effet si la ligne n'est pas dans la liste affichée).
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "rsvps" }, (payload) => {
-        const old = payload.old as Partial<RsvpRow>;
-        setRows((prev) => prev.filter((r) => r.id !== old.id));
-      })
-      .subscribe((status) => setLive(status === "SUBSCRIBED"));
-    return () => {
-      void supabase.removeChannel(channel);
+    const tick = () => {
+      if (document.visibilityState === "visible") void poll();
     };
-  }, [eventId]);
+    const timer = setInterval(tick, REFRESH_MS);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [poll]);
 
   const s = useMemo(() => stats(rows), [rows]);
   const shown = filter === "all" ? rows : rows.filter((r) => r.response === filter);
@@ -90,7 +98,7 @@ export function RsvpLive({
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-sm text-ink/60">
           <span className={cn("size-2 rounded-full", live ? "bg-forest" : "bg-ink/30")} aria-hidden="true" />
-          {live ? "Mise à jour en temps réel" : "Connexion au temps réel…"}
+          {live ? "Actualisation automatique" : "Actualisation interrompue, nouvelle tentative…"}
           {guestLimit && (
             <span className="ml-1">
               · {s.total} / {guestLimit} invités suivis

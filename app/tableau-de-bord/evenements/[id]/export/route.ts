@@ -1,13 +1,13 @@
 import { getCurrentUser } from "@/lib/auth";
-import { isSupabaseConfigured } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
+import { isBackendConfigured } from "@/lib/env";
+import { createClient } from "@/lib/neon/data";
 import type { RsvpRow } from "@/lib/types";
 
 const LABELS = { yes: "Présent", no: "Absent", maybe: "Peut-être" } as const;
 
 /** Export CSV des réponses (ouvrable dans Excel : séparateur « ; », BOM UTF-8). */
 export async function GET(_req: Request, { params }: RouteContext<"/tableau-de-bord/evenements/[id]/export">) {
-  if (!isSupabaseConfigured) return new Response("Non configuré", { status: 503 });
+  if (!isBackendConfigured) return new Response("Non configuré", { status: 503 });
   const { id } = await params;
   const user = await getCurrentUser();
   if (!user) return new Response("Connexion requise", { status: 401 });

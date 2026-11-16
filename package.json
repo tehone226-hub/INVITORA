@@ -8,14 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "art": "node scripts/generate-theme-art.mjs",
-    "test": "node scripts/test.mjs"
+    "test": "node scripts/test.mjs",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
     "@base-ui/react": "^1.9.0",
     "@google/genai": "^3.3.0",
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.119.0",
+    "@neon/auth": "^0.8.2",
+    "@neondatabase/serverless": "^1.2.1",
+    "@supabase/postgrest-js": "^2.119.0",
+    "@vercel/blob": "^2.9.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "lucide-react": "^1.73.0",
@@ -35,6 +38,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "pg": "^8.23.1",
     "tailwindcss": "4.3.3",
     "typescript": "^5",
     "vitest": "^5.1.0"

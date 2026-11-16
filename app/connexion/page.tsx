@@ -5,7 +5,7 @@ import { Logo } from "@/components/logo";
 import { SetupRequired } from "@/components/setup-required";
 import { Notice } from "@/components/ui/notice";
 import { getCurrentUser, safeNextPath } from "@/lib/auth";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isBackendConfigured } from "@/lib/env";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -17,10 +17,11 @@ const ERRORS: Record<string, string> = {
   lien: "Ce lien de connexion n'est plus valide (il a expiré ou a déjà servi). Demandez-en un nouveau.",
   google: "La connexion avec Google n'a pas abouti. Réessayez ou utilisez votre e-mail.",
   configuration: "La connexion n'est pas encore configurée.",
+  session: "Votre session a expiré. Reconnectez-vous pour continuer.",
 };
 
 export default function LoginPage(props: PageProps<"/connexion">) {
-  if (!isSupabaseConfigured) return <SetupRequired what="la connexion" />;
+  if (!isBackendConfigured) return <SetupRequired what="la connexion" />;
   return (
     <section className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-14">
       <div className="rounded-[28px] border border-ink/5 bg-white p-7 shadow-card sm:p-9">

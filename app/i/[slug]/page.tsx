@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CalendarPlus, MessageCircle } from "lucide-react";
 import { InvitationView } from "@/components/invitation/invitation-view";
-import { buttonClass } from "@/components/ui/form";
+import { buttonClass } from "@/components/ui/button-class";
 import { getPublicEvent, isPublic } from "@/lib/events";
 import { formatDate } from "@/lib/format";
 import { whatsappMessage, whatsappShareUrl } from "@/lib/share";

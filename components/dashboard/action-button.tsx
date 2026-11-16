@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { buttonClass, type ButtonVariant } from "@/components/ui/form";
+import { buttonClass, type ButtonVariant } from "@/components/ui/button-class";
 import type { ActionState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

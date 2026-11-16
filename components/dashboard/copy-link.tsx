@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { buttonClass } from "@/components/ui/form";
+import { buttonClass } from "@/components/ui/button-class";
 
 export function CopyLink({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);

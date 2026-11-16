@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SetupRequired } from "@/components/setup-required";
 import { requireUser } from "@/lib/auth";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isBackendConfigured } from "@/lib/env";
 import { features } from "@/lib/env-server";
 import { CreateForm } from "./create-form";
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default function CreatePage() {
-  if (!isSupabaseConfigured) return <SetupRequired what="la création d'invitation" />;
+  if (!isBackendConfigured) return <SetupRequired what="la création d'invitation" />;
   return (
     <section className="mx-auto w-full max-w-3xl px-5 py-10 sm:py-14">
       <p className="text-xs font-bold tracking-[0.12em] text-terracotta uppercase">Nouvelle invitation</p>

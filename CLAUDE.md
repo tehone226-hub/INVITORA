@@ -13,7 +13,7 @@ Le porteur du projet débute en programmation : explique simplement ce que tu fa
 
 ## Stack
 - Next.js (App Router, TypeScript), Tailwind CSS, shadcn/ui.
-- Supabase : base PostgreSQL avec RLS, Auth (lien magique e-mail + Google), Storage (photos, images générées), Realtime (RSVP).
+- Neon : base PostgreSQL avec RLS (API de données Neon, rôle authenticated + auth.uid()), Neon Auth (Better Auth : code à 6 chiffres par e-mail + Google), actualisation automatique des réponses RSVP (toutes les 8 s). Opérations de confiance côté serveur par connexion SQL directe (DATABASE_URL). Images générées : Vercel Blob.
 - Texte IA : API Claude via `@anthropic-ai/sdk`, modèle `claude-sonnet-5-5`, côté serveur uniquement.
 - Images IA : API Gemini via `@google/genai`, modèle `gemini-nano-banana-2.1` ; `gemini-3.1-flash-lite-image` pour les aperçus gratuits. Doc : https://ai.google.dev/gemini-api/docs/image-generation
 - Paiement : SasPay (https://docs.saspay.me/), Orange Money `orange_bf`, Moov Money `moov_bf`, carte. Page de paiement hébergée (checkout session).
@@ -51,4 +51,4 @@ Les prix et limites vivent dans un seul fichier de configuration (`config/plans.
 - Si une information manque (clé, choix produit), pose la question au lieu d'inventer.
 
 ## Feuille de route
-1. Préparation (fait par le porteur)  2. Charte BRAND.md  3. Création du projet  4. Page d'accueil fidèle à la maquette  5. Supabase et connexion  6. Création d'invitation (Claude + Gemini)  7. Page invité et partage WhatsApp  8. RSVP et tableau de bord  9. Paiement SasPay  10. Mise en ligne Vercel
+1. Préparation (fait par le porteur)  2. Charte BRAND.md  3. Création du projet  4. Page d'accueil fidèle à la maquette  5. Base Neon et connexion  6. Création d'invitation (Claude + Gemini)  7. Page invité et partage WhatsApp  8. RSVP et tableau de bord  9. Paiement SasPay  10. Mise en ligne Vercel

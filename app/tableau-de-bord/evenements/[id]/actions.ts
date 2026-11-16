@@ -10,14 +10,15 @@ import { generateInvitationText } from "@/lib/ai/invitation-text";
 import { getCurrentUser } from "@/lib/auth";
 import { SESSION_LIFETIME_HOURS, refreshPaymentStatus } from "@/lib/billing";
 import { publicEnv } from "@/lib/env";
-import { features } from "@/lib/env-server";
+import { features, serverEnv } from "@/lib/env-server";
 import { eventTypeLabel, isEventType, isLanguage } from "@/lib/event-types";
 import { EVENT_COLUMNS, eventTag, isPlanActive, planOf } from "@/lib/events";
 import { toIsoFromLocal } from "@/lib/format";
 import { SaspayError, createCheckoutSession, saspayAmount } from "@/lib/saspay";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
-import type { ActionState, EventRow } from "@/lib/types";
+import { put } from "@vercel/blob";
+import { db, rows } from "@/lib/neon/sql";
+import { createClient } from "@/lib/neon/data";
+import type { ActionState, EventRow, RsvpRow } from "@/lib/types";
 
 const THEMES: ThemeId[] = ["faso-dan-fani", "bogolan", "tiebele", "indigo"];
 /** Nombre maximal d'images IA par utilisateur et par jour (maîtrise des coûts). */
@@ -182,8 +183,8 @@ export async function regenerateText(id: string): Promise<ActionState> {
   if (text.source !== "ai") return { ok: false, message: "L'IA n'a pas pu rédiger un nouveau texte. Réessayez dans un instant." };
 
   await ctx.supabase.from("events").update({ title: text.title, message: text.message, program: text.program }).eq("id", id);
-  if (features.serviceRole) {
-    await createAdminClient().from("ai_usage").insert({ user_id: ctx.user.id, event_id: id, kind: "text", model: text.model ?? "claude" });
+  if (features.database) {
+    await db()`insert into public.ai_usage (user_id, event_id, kind, model) values (${ctx.user.id}, ${id}, 'text', ${text.model ?? "claude"})`;
   }
   refresh(e);
   return { ok: true, message: "Nouveau texte rédigé. Relisez-le et modifiez-le si besoin." };
@@ -193,56 +194,50 @@ export async function generateCover(id: string): Promise<ActionState> {
   const ctx = await loadEvent(id);
   if (!ctx) return { ok: false, message: "Invitation introuvable." };
   if (!features.aiImage) return { ok: false, message: "La génération d'images n'est pas encore activée sur ce site." };
-  if (!features.serviceRole) return { ok: false, message: "Configuration serveur incomplète (clé service Supabase)." };
   const e = ctx.event;
   if (e.image_generations >= MAX_IMAGE_GENERATIONS) {
     return { ok: false, message: `Vous avez utilisé les ${MAX_IMAGE_GENERATIONS} créations d'image de cette invitation.` };
   }
 
-  const admin = createAdminClient();
+  const sql = db();
   // Plafond quotidien par utilisateur (maîtrise des coûts Gemini)
-  const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-  const { count: usedToday } = await admin
-    .from("ai_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", ctx.user.id)
-    .eq("kind", "image")
-    .gte("created_at", since);
-  if ((usedToday ?? 0) >= DAILY_IMAGE_LIMIT) {
+  const used = await rows<{ n: number }>(
+    sql`select count(*)::int as n from public.ai_usage
+        where user_id = ${ctx.user.id} and kind = 'image' and created_at > now() - interval '24 hours'`,
+  );
+  if ((used[0]?.n ?? 0) >= DAILY_IMAGE_LIMIT) {
     return { ok: false, message: `Vous avez atteint la limite de ${DAILY_IMAGE_LIMIT} créations d'image par jour. Réessayez demain.` };
   }
   // On réserve la génération AVANT l'appel (évite de dépasser la limite en cliquant plusieurs fois).
-  const { data: reserved } = await admin
-    .from("events")
-    .update({ image_generations: e.image_generations + 1 })
-    .eq("id", id)
-    .eq("image_generations", e.image_generations)
-    .select("id")
-    .maybeSingle();
-  if (!reserved) return { ok: false, message: "Une création d'image est déjà en cours. Patientez un instant." };
+  const reserved = await rows<{ id: string }>(
+    sql`update public.events set image_generations = image_generations + 1
+        where id = ${id} and image_generations = ${e.image_generations} returning id`,
+  );
+  if (!reserved.length) return { ok: false, message: "Une création d'image est déjà en cours. Patientez un instant." };
 
   const image = await generateBackground(e.theme, eventTypeLabel(e.event_type), isPlanActive(e));
-  await admin
-    .from("ai_usage")
-    .insert({ user_id: ctx.user.id, event_id: id, kind: "image", model: image?.model ?? "aucune", ok: Boolean(image) });
+  await sql`insert into public.ai_usage (user_id, event_id, kind, model, ok)
+           values (${ctx.user.id}, ${id}, 'image', ${image?.model ?? "aucune"}, ${Boolean(image)})`;
 
   if (!image) {
     // Une tentative qui échoue ne consomme pas l'une des 3 créations de l'invitation.
-    await admin.from("events").update({ image_generations: e.image_generations }).eq("id", id).eq("image_generations", e.image_generations + 1);
+    await sql`update public.events set image_generations = greatest(image_generations - 1, 0) where id = ${id}`;
     return { ok: false, message: "L'image n'a pas pu être créée. Le fond de l'étoffe choisie reste utilisé. Réessayez plus tard." };
   }
 
   const ext = image.mimeType.includes("jpeg") ? "jpg" : image.mimeType.includes("webp") ? "webp" : "png";
-  const path = `${e.owner_id}/${e.id}-${Date.now()}.${ext}`;
-  const { error: upErr } = await admin.storage
-    .from("invitations")
-    .upload(path, image.bytes, { contentType: image.mimeType, cacheControl: "31536000", upsert: false });
-  if (upErr) {
-    console.error("[image] stockage", upErr.message);
+  try {
+    const blob = await put(`invitations/${e.owner_id}/${e.id}.${ext}`, image.bytes, {
+      access: "public",
+      contentType: image.mimeType,
+      addRandomSuffix: true,
+      token: serverEnv.blobToken,
+    });
+    await sql`update public.events set cover_image_url = ${blob.url} where id = ${id}`;
+  } catch (error) {
+    console.error("[image] stockage", error instanceof Error ? error.message : error);
     return { ok: false, message: "L'image a été créée mais n'a pas pu être enregistrée. Réessayez." };
   }
-  const { data: pub } = admin.storage.from("invitations").getPublicUrl(path);
-  await ctx.supabase.from("events").update({ cover_image_url: pub.publicUrl }).eq("id", id);
   refresh(e);
   return { ok: true, message: "Nouveau fond créé par l'IA." };
 }
@@ -263,46 +258,39 @@ export async function startCheckout(id: string, plan: PlanId): Promise<ActionSta
   const ctx = await loadEvent(id);
   if (!ctx) return { ok: false, message: "Invitation introuvable." };
   if (!Object.hasOwn(PLANS, plan)) return { ok: false, message: "Formule inconnue." };
-  if (!features.payments || !features.serviceRole) {
+  if (!features.payments || !features.database) {
     return { ok: false, message: "Le paiement en ligne n'est pas encore activé. Revenez bientôt." };
   }
   if (!ctx.user.email) return { ok: false, message: "Ajoutez une adresse e-mail à votre compte pour payer." };
 
-  const admin = createAdminClient();
+  const sql = db();
   const amount = saspayAmount(PLANS[plan].price);
 
   // Un paiement déjà ouvert pour la même invitation et la même formule est repris, pas dupliqué.
-  const recent = new Date(Date.now() - (SESSION_LIFETIME_HOURS * 3600_000) / 2).toISOString();
-  const { data: existing } = await admin
-    .from("payments")
-    .select("id, checkout_url")
-    .eq("event_id", id)
-    .eq("user_id", ctx.user.id)
-    .eq("plan", plan)
-    .eq("amount", amount)
-    .eq("status", "pending")
-    .not("checkout_url", "is", null)
-    .gte("created_at", recent)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{ id: string; checkout_url: string }>();
-  if (existing) redirect(existing.checkout_url);
+  const existing = await rows<{ checkout_url: string }>(
+    sql`select checkout_url from public.payments
+        where event_id = ${id} and user_id = ${ctx.user.id} and plan = ${plan} and amount = ${amount}
+          and status = 'pending' and checkout_url is not null
+          and created_at > now() - (${SESSION_LIFETIME_HOURS / 2}::float * interval '1 hour')
+        order by created_at desc limit 1`,
+  );
+  if (existing[0]) redirect(existing[0].checkout_url);
 
   // Garde-fou : pas plus de 5 paiements ouverts par heure et par utilisateur
-  const { count: openCount } = await admin
-    .from("payments")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", ctx.user.id)
-    .eq("status", "pending")
-    .gte("created_at", new Date(Date.now() - 3600_000).toISOString());
-  if ((openCount ?? 0) >= 5) return { ok: false, message: "Trop de paiements ouverts en peu de temps. Patientez une heure ou terminez le paiement en cours." };
+  const open = await rows<{ n: number }>(
+    sql`select count(*)::int as n from public.payments
+        where user_id = ${ctx.user.id} and status = 'pending' and created_at > now() - interval '1 hour'`,
+  );
+  if ((open[0]?.n ?? 0) >= 5) {
+    return { ok: false, message: "Trop de paiements ouverts en peu de temps. Patientez une heure ou terminez le paiement en cours." };
+  }
 
-  const { data: payment, error } = await admin
-    .from("payments")
-    .insert({ event_id: id, user_id: ctx.user.id, plan, amount, currency: "XOF", status: "pending" })
-    .select("id")
-    .single<{ id: string }>();
-  if (error || !payment) return { ok: false, message: "Le paiement n'a pas pu démarrer. Réessayez." };
+  const created = await rows<{ id: string }>(
+    sql`insert into public.payments (event_id, user_id, plan, amount, currency, status)
+        values (${id}, ${ctx.user.id}, ${plan}, ${amount}, 'XOF', 'pending') returning id`,
+  );
+  const payment = created[0];
+  if (!payment) return { ok: false, message: "Le paiement n'a pas pu démarrer. Réessayez." };
 
   let checkoutUrl: string;
   try {
@@ -316,15 +304,12 @@ export async function startCheckout(id: string, plan: PlanId): Promise<ActionSta
       metadata: { payment_id: payment.id, event_id: id, plan },
       expiresInHours: SESSION_LIFETIME_HOURS,
     });
-    // Sans l'identifiant de session, le paiement ne pourrait jamais être rapproché : on le vérifie.
-    const { error: linkErr } = await admin
-      .from("payments")
-      .update({ saspay_session_id: session.id, checkout_url: session.checkout_url })
-      .eq("id", payment.id);
-    if (linkErr) throw linkErr;
+    // Sans l'identifiant de session, le paiement ne pourrait jamais être rapproché : l'erreur remonte.
+    await sql`update public.payments set saspay_session_id = ${session.id}, checkout_url = ${session.checkout_url}
+             where id = ${payment.id}`;
     checkoutUrl = session.checkout_url;
   } catch (e) {
-    await admin.from("payments").update({ status: "failed" }).eq("id", payment.id);
+    await sql`update public.payments set status = 'failed' where id = ${payment.id}`;
     console.error("[paiement] création de session", e instanceof SaspayError ? `${e.status} ${e.code}` : e);
     return { ok: false, message: "Le service de paiement ne répond pas. Réessayez dans quelques minutes." };
   }
@@ -359,4 +344,17 @@ export async function deleteRsvp(eventId: string, rsvpId: string): Promise<Actio
   const { error } = await ctx.supabase.from("rsvps").delete().eq("id", rsvpId).eq("event_id", eventId);
   if (error) return { ok: false, message: "Suppression impossible." };
   return { ok: true, message: "Réponse supprimée." };
+}
+
+/** Réponses actuelles de l'invitation (rafraîchissement automatique du tableau de bord). */
+export async function fetchRsvps(eventId: string): Promise<RsvpRow[]> {
+  const ctx = await loadEvent(eventId);
+  if (!ctx) return [];
+  const { data } = await ctx.supabase
+    .from("rsvps")
+    .select("id, event_id, name, phone, response, guests_count, message, created_at")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false })
+    .returns<RsvpRow[]>();
+  return data ?? [];
 }

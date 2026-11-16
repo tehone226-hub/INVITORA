@@ -9,8 +9,8 @@ import { features } from "@/lib/env-server";
 import { isEventType, isLanguage } from "@/lib/event-types";
 import { toIsoFromLocal } from "@/lib/format";
 import { makeSlug } from "@/lib/slug";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/neon/sql";
+import { createClient } from "@/lib/neon/data";
 import type { ActionState } from "@/lib/types";
 
 /** Nombre maximal de textes IA par utilisateur et par jour (maîtrise des coûts). */
@@ -100,10 +100,9 @@ export async function createInvitation(_prev: ActionState, formData: FormData): 
     return { ok: false, message: "L'invitation n'a pas pu être enregistrée. Réessayez dans un instant." };
   }
 
-  if (text.source === "ai" && features.serviceRole) {
-    await createAdminClient()
-      .from("ai_usage")
-      .insert({ user_id: user.id, event_id: data.id, kind: "text", model: text.model ?? "claude" });
+  if (text.source === "ai" && features.database) {
+    await db()`insert into public.ai_usage (user_id, event_id, kind, model)
+             values (${user.id}, ${data.id}, 'text', ${text.model ?? "claude"})`;
   }
 
   redirect(`/tableau-de-bord/evenements/${data.id}?nouveau=1`);

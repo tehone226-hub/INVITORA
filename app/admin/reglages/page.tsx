@@ -5,9 +5,9 @@ import { AdminSkeleton } from "@/components/admin/ui";
 import { IMAGE_MODEL_PAID, IMAGE_MODEL_PREVIEW } from "@/lib/ai/invitation-image";
 import { TEXT_MODEL } from "@/lib/ai/invitation-text";
 import { requireAdmin } from "@/lib/auth";
-import { isSupabaseConfigured, publicEnv } from "@/lib/env";
+import { isBackendConfigured, publicEnv } from "@/lib/env";
 import { features } from "@/lib/env-server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/neon/data";
 import { SettingsForm } from "./settings-form";
 
 export const metadata: Metadata = { title: "Réglages — Administration", robots: { index: false } };
@@ -28,10 +28,10 @@ async function Settings() {
 
   // Seulement « configuré / non configuré » : jamais la valeur des clés.
   const services = [
-    { name: "Base de données Supabase", ok: isSupabaseConfigured, help: "NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY" },
-    { name: "Clé service Supabase (serveur)", ok: features.serviceRole, help: "SUPABASE_SERVICE_ROLE_KEY" },
+    { name: "Base de données et connexion Neon", ok: isBackendConfigured, help: "NEON_DATA_API_URL, NEON_AUTH_BASE_URL, NEON_AUTH_COOKIE_SECRET" },
+    { name: "Connexion SQL serveur (Neon)", ok: features.database, help: "DATABASE_URL" },
     { name: `Textes IA — ${TEXT_MODEL}`, ok: features.aiText, help: "ANTHROPIC_API_KEY" },
-    { name: `Images IA — ${IMAGE_MODEL_PAID} / ${IMAGE_MODEL_PREVIEW}`, ok: features.aiImage, help: "GEMINI_API_KEY" },
+    { name: `Images IA — ${IMAGE_MODEL_PAID} / ${IMAGE_MODEL_PREVIEW}`, ok: features.aiImage, help: "GEMINI_API_KEY, BLOB_READ_WRITE_TOKEN (Vercel Blob)" },
     { name: "Paiement SasPay", ok: features.payments, help: "SASPAY_SECRET_KEY, SASPAY_WEBHOOK_SECRET" },
     { name: `Adresse du site : ${publicEnv.siteUrl}`, ok: !publicEnv.siteUrl.includes("localhost"), help: "NEXT_PUBLIC_SITE_URL (adresse publique en production)" },
   ];

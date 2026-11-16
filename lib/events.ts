@@ -1,11 +1,11 @@
 import "server-only";
 import { notFound } from "next/navigation";
-import { createClient as createAnonClient } from "@supabase/supabase-js";
 import { cacheLife, cacheTag } from "next/cache";
 import { PLANS } from "@/config/plans";
-import { isSupabaseConfigured, publicEnv } from "@/lib/env";
+import { isBackendConfigured } from "@/lib/env";
 import { getCurrentUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/neon/data";
+import { db, rows } from "@/lib/neon/sql";
 import type { EventRow, PaymentRow, RsvpRow } from "@/lib/types";
 
 export const EVENT_COLUMNS =
@@ -84,12 +84,6 @@ export function rsvpStats(rsvps: RsvpRow[]) {
 
 /* ---------------- Public (page invité, sans cookies, mis en cache) ---------------- */
 
-function anonClient() {
-  return createAnonClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
 export const eventTag = (slug: string) => `event-${slug}`;
 
 /**
@@ -100,9 +94,11 @@ export async function getPublicEvent(slug: string): Promise<EventRow | null> {
   "use cache";
   cacheLife("minutes");
   cacheTag(eventTag(slug));
-  if (!isSupabaseConfigured || !/^[a-z0-9-]{10,80}$/.test(slug)) return null;
-  const { data } = await anonClient().rpc("get_public_event", { p_slug: slug });
-  const row = (data as Omit<EventRow, "owner_id" | "image_generations" | "blocked_at" | "created_at" | "updated_at">[] | null)?.[0];
+  if (!isBackendConfigured || !/^[a-z0-9-]{10,80}$/.test(slug)) return null;
+  const data = await rows<Omit<EventRow, "owner_id" | "image_generations" | "blocked_at" | "created_at" | "updated_at">>(
+    db()`select * from public.get_public_event(${slug})`,
+  );
+  const row = data[0];
   if (!row) return null;
   return { ...row, owner_id: "", image_generations: 0, blocked_at: null, created_at: "", updated_at: "" };
 }
@@ -113,10 +109,10 @@ export async function getSiteSettings(): Promise<{ showSampleContent: boolean; m
   cacheLife("hours");
   cacheTag("settings");
   const fallback = { showSampleContent: false, maintenanceMessage: "" };
-  if (!isSupabaseConfigured) return fallback;
+  if (!isBackendConfigured) return fallback;
   try {
-    const { data } = await anonClient().from("app_settings").select("key, value");
-    const map = new Map((data ?? []).map((r: { key: string; value: unknown }) => [r.key, r.value]));
+    const data = await rows<{ key: string; value: unknown }>(db()`select key, value from public.app_settings`);
+    const map = new Map(data.map((r) => [r.key, r.value]));
     return {
       showSampleContent: map.get("show_sample_content") === true,
       maintenanceMessage: typeof map.get("maintenance_message") === "string" ? (map.get("maintenance_message") as string) : "",
