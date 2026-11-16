@@ -52,7 +52,7 @@ export async function generateBackground(theme: ThemeId, eventLabel: string, pai
       contents: buildImagePrompt(theme, eventLabel),
       config: {
         responseModalities: ["IMAGE"],
-        imageConfig: { aspectRatio: "3:4", personGeneration: "ALLOW_NONE" },
+        imageConfig: { aspectRatio: "3:4" },
       },
     });
     const parts = response.candidates?.[0]?.content?.parts ?? [];
