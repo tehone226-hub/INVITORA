@@ -1,105 +1,116 @@
-# Mise en route d'Invitora
+# Mise en route d'Invitora (Neon + Vercel)
 
-Ce guide explique, pas à pas, comment brancher les services pour que tout fonctionne : connexion, création d'invitations, réponses des invités, IA et paiement. Comptez environ une heure.
+## Où en est le projet
 
-Le site fonctionne déjà sans ces réglages (page d'accueil, exemples d'invitations). Chaque service ajouté active une partie du site.
+| Élément | État |
+| --- | --- |
+| Base de données Neon `invitora` (Francfort) | ✅ créée, schéma appliqué, sécurité par ligne active |
+| Connexion Neon Auth (code par e-mail + Google) | ✅ active |
+| Site en ligne sur Vercel | ✅ https://invitora-theta.vercel.app |
+| Stockage des images IA (Vercel Blob `invitora-images`) | ✅ créé et connecté |
+| Textes par l'IA (Claude) | ⏳ clé `ANTHROPIC_API_KEY` à ajouter (sinon textes types) |
+| Images par l'IA (Gemini) | ⏳ clé `GEMINI_API_KEY` à ajouter |
+| Paiement SasPay | ⏳ clés à ajouter (voir `docs/saspay.md`) |
+| Envoi des e-mails de connexion | ⚠️ expéditeur partagé de Neon : à remplacer avant l'ouverture au public |
 
-| Service | Ce qu'il active | Obligatoire ? |
+Le site fonctionne déjà sans les clés « à ajouter » : textes types, fonds d'étoffe, pas de paiement.
+
+---
+
+## 1. Les variables d'environnement
+
+Elles sont dans deux endroits, qui doivent rester identiques :
+- **chez vous** : fichier `.env.local` (jamais envoyé sur GitHub) ;
+- **en production** : Vercel → projet `invitora` → Settings → Environment Variables.
+
+Pour ajouter une clé en production depuis le terminal du projet (remplacez `NOM`) :
+```
+npx vercel@latest env add NOM production
+```
+Collez la valeur quand elle est demandée, puis redéployez : `npx vercel@latest deploy --prod --yes`.
+
+| Variable | Rôle | Où la trouver |
 | --- | --- | --- |
-| Supabase | Comptes, invitations, réponses des invités, administration | Oui |
-| Anthropic (Claude) | Textes rédigés par l'IA | Non : sans clé, des textes types sont proposés |
-| Google Gemini | Fonds d'invitation créés par l'IA | Non : sans clé, les 4 étoffes sont utilisées |
-| SasPay | Paiement Orange Money / Moov Money | Oui pour encaisser |
+| `DATABASE_URL` | Connexion SQL serveur (secret) | Neon → projet → Connect |
+| `NEON_DATA_API_URL` | API de données (sécurité par ligne) | Neon → Data API |
+| `NEON_AUTH_BASE_URL` | Serveur de connexion | Neon → Auth |
+| `NEON_AUTH_COOKIE_SECRET` | Signature des sessions (secret, ≥ 32 caractères) | `openssl rand -base64 32` |
+| `NEXT_PUBLIC_SITE_URL` | Adresse publique du site | `https://invitora-theta.vercel.app` |
+| `ADMIN_EMAILS` | E-mails administrateurs | vous |
+| `ANTHROPIC_API_KEY` | Textes Claude | console.anthropic.com → API Keys |
+| `GEMINI_API_KEY` | Images Gemini | aistudio.google.com/apikey |
+| `BLOB_READ_WRITE_TOKEN` | Stockage des images | automatique (store `invitora-images`) |
+| `SASPAY_SECRET_KEY`, `SASPAY_WEBHOOK_SECRET` | Paiement | tableau de bord SasPay |
+
+> Les images IA ne s'activent que si **les deux** variables `GEMINI_API_KEY` et `BLOB_READ_WRITE_TOKEN` sont présentes.
 
 ---
 
-## 1. Créer le fichier `.env.local`
+## 2. Base de données (Neon)
 
-1. Dans VS Code, à la racine du projet, faites un clic droit sur `.env.example` → **Copier**, puis **Coller**.
-2. Renommez la copie en `.env.local` (exactement ce nom).
-3. Vous allez remplir ce fichier au fil des étapes. **Ne l'envoyez jamais sur GitHub** : il est déjà ignoré par Git.
+Le schéma est dans `db/migrations/`. Pour l'appliquer sur une autre base (ou après l'ajout d'un fichier de migration) :
+```
+npm run db:migrate
+```
+Il lit `DATABASE_URL` dans `.env.local` et n'applique chaque fichier qu'une seule fois.
 
-Après chaque modification de `.env.local`, arrêtez le site (`Ctrl + C` dans le terminal) et relancez `npm run dev`.
-
----
-
-## 2. Supabase (base de données et connexion)
-
-Votre compte Supabase gratuit est limité à 2 projets actifs, et vous en avez déjà 2 (« TECH ONE GEST » et « drametextil »). Pour créer Invitora, il faut d'abord **mettre en pause** un de ces projets (Dashboard Supabase → le projet → Settings → General → Pause project), ou passer au plan payant.
-
-1. Allez sur https://supabase.com/dashboard → **New project**.
-2. Nom : `invitora`. Mot de passe : générez-en un et gardez-le. Région : **West EU (Paris)** (`eu-west-3`).
-3. Quand le projet est prêt : **Project Settings → API**. Copiez dans `.env.local` :
-   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL=`
-   - `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY=`
-   - `service_role` (cliquez sur « Reveal ») → `SUPABASE_SERVICE_ROLE_KEY=`. **Cette clé est secrète** : elle donne tous les droits.
-4. Créez les tables : menu **SQL Editor** → **New query**. Ouvrez le fichier `supabase/migrations/20261115000000_init.sql` dans VS Code, copiez **tout** son contenu, collez-le dans Supabase, puis cliquez sur **Run**. Le message attendu est « Success. No rows returned ».
-5. Connexion par e-mail : **Authentication → URL Configuration** :
-   - Site URL : `http://localhost:3000` (puis votre adresse finale après la mise en ligne)
-   - Redirect URLs : ajoutez `http://localhost:3000/auth/callback` (et plus tard `https://VOTRE-DOMAINE/auth/callback`)
-6. Mettez votre e-mail dans `.env.local` pour devenir administrateur : `ADMIN_EMAILS=votre@email.com`
-7. Relancez `npm run dev`, ouvrez http://localhost:3000/connexion et connectez-vous. Vous recevez un e-mail : cliquez sur le lien. Vous arrivez dans **Mon espace**, et le bouton **Administration** apparaît.
-
-> Le service d'e-mail intégré à Supabase est limité à quelques e-mails par heure. Avant l'ouverture au public, branchez un service d'envoi (Authentication → Emails → SMTP Settings), par exemple Resend ou Brevo.
-
-### Connexion avec Google (facultatif)
-
-1. Sur https://console.cloud.google.com → APIs & Services → Credentials → **Create credentials → OAuth client ID** (type « Web application »).
-2. « Authorized redirect URIs » : collez l'adresse indiquée par Supabase dans **Authentication → Providers → Google** (elle se termine par `/auth/v1/callback`).
-3. Copiez le Client ID et le Client Secret dans Supabase (Providers → Google), puis activez Google.
+**Sécurité** : chaque table a la sécurité par ligne (RLS). L'organisateur ne lit que ses données ; les invités passent par deux fonctions SQL ciblées (`get_public_event`, `submit_rsvp`) exécutées par le serveur uniquement.
 
 ---
 
-## 3. Textes par l'IA (Claude)
+## 3. Connexion
 
-1. Créez une clé sur https://console.anthropic.com → **API Keys → Create Key**.
-2. Dans `.env.local` : `ANTHROPIC_API_KEY=sk-ant-...`
-3. Ajoutez un peu de crédit (Billing). Une invitation coûte une fraction de centime.
+- **Par e-mail** : l'utilisateur saisit son adresse, reçoit un code à 6 chiffres, le saisit. Pas de mot de passe.
+- **Avec Google** : fonctionne avec les identifiants partagés de Neon. Pour afficher votre propre nom d'application sur l'écran Google, créez vos identifiants dans la console Google Cloud puis renseignez-les dans Neon → Auth → Google.
+- **Administrateur** : mettez votre e-mail dans `ADMIN_EMAILS` ; à votre prochaine connexion, le bouton « Administration » apparaît dans « Mon espace ».
 
-Le modèle utilisé est `claude-sonnet-5-5`, comme demandé dans `CLAUDE.md`. Il y a une limite de 15 textes par utilisateur et par jour.
+⚠️ **Avant l'ouverture au public** : les e-mails de code partent d'un expéditeur partagé de Neon (limité et peu fiable pour la livraison). Dans Neon → Auth → Email provider, branchez votre propre SMTP (par exemple Brevo ou Resend avec un domaine à vous).
 
 ---
 
 ## 4. Images par l'IA (Gemini)
 
 1. Créez une clé sur https://aistudio.google.com/apikey.
-2. Dans `.env.local` : `GEMINI_API_KEY=...`
+2. Ajoutez-la dans `.env.local` (`GEMINI_API_KEY=...`) **et** en production (voir section 1).
+3. Redéployez.
 
-Les images ne contiennent jamais de texte : les prénoms et les dates sont posés par-dessus (règle 2). La limite est de 3 images par invitation. Le modèle `gemini-3.1-flash-lite-image` sert pour les aperçus gratuits, et `gemini-nano-banana-2.1` une fois la formule payée.
+Les images ne contiennent jamais de texte : prénoms et dates sont posés par-dessus (règle 2). Limites : 3 créations par invitation et 6 par utilisateur et par jour. Le modèle `gemini-3.1-flash-lite-image` sert pour les aperçus gratuits et `gemini-nano-banana-2.1` une fois la formule payée.
 
 ---
 
 ## 5. Paiement (SasPay)
 
-> ⚠️ **Règle 4** : SasPay n'a pas de mode test fiable. Même avec une clé de test, **un vrai paiement peut être débité**. Avant tout essai, mettez `SASPAY_TEST_AMOUNT_XOF=100` dans `.env.local` : tous les paiements coûteront alors 100 FCFA. Retirez cette ligne en production.
+> ⚠️ **Règle 4** : SasPay n'a pas de mode test fiable. Même avec une clé de test, **un vrai paiement peut être débité**. Avant tout essai, mettez `SASPAY_TEST_AMOUNT_XOF=100` dans `.env.local` (et en production pour tester là-bas) : tous les paiements coûtent alors 100 FCFA. Retirez cette variable ensuite.
 
-1. Dans le tableau de bord SasPay (https://app.saspay.me), créez une clé API avec le droit **PAYIN** → `SASPAY_SECRET_KEY=sk_live_...`
+1. Dans le tableau de bord SasPay (https://app.saspay.me), créez une clé API avec le droit **PAYIN** → `SASPAY_SECRET_KEY`.
 2. Créez un webhook :
-   - URL : `https://VOTRE-DOMAINE/api/saspay/webhook` (il faut un site en ligne, voir l'étape 6)
+   - URL : `https://invitora-theta.vercel.app/api/saspay/webhook`
    - Événement : **transaction.success**
-   - Copiez le secret de signature, affiché **une seule fois** → `SASPAY_WEBHOOK_SECRET=...`
-3. Vérifiez dans SasPay que les réseaux `orange_bf` et `moov_bf` sont actifs sur votre compte.
+   - Copiez le secret de signature (affiché **une seule fois**) → `SASPAY_WEBHOOK_SECRET`.
+3. Ajoutez les deux variables en production et redéployez.
 
-**Comment l'activation fonctionne** (règle 3) : la formule ne s'active jamais au retour du navigateur. Elle s'active seulement quand SasPay envoie un webhook signé. La signature est vérifiée, chaque transaction n'est traitée qu'une fois, et l'API SasPay doit confirmer le statut `SUCCESS`. Si un webhook se perd, l'administrateur peut cliquer sur **Activer** dans Administration → Paiements : l'activation n'a lieu que si SasPay confirme le paiement.
+La formule ne s'active jamais au retour du navigateur : seulement par le webhook signé, après confirmation de l'API SasPay (voir `docs/saspay.md`).
 
 ---
 
-## 6. Mise en ligne (Vercel)
+## 6. Déploiement
 
-1. Sur https://vercel.com, connectez-vous avec GitHub → **Add New → Project** → importez le dépôt `INVITORA`.
-2. Avant de cliquer sur Deploy, ouvrez **Environment Variables** et ajoutez **toutes** les lignes de votre `.env.local`, sauf `SASPAY_TEST_AMOUNT_XOF`. Mettez `NEXT_PUBLIC_SITE_URL=https://votre-adresse.vercel.app`, ou votre nom de domaine.
-3. Cliquez sur **Deploy**.
-4. Retournez dans Supabase (Authentication → URL Configuration) et ajoutez l'adresse Vercel : Site URL, et Redirect URL `/auth/callback`.
-5. Dans SasPay, mettez l'URL du webhook avec l'adresse Vercel.
+Le projet est déployé depuis cet ordinateur avec la ligne de commande Vercel :
+```
+npx vercel@latest deploy --prod --yes
+```
+Le lien automatique avec GitHub (un déploiement à chaque `git push`) n'est pas encore actif : Vercel demande d'abord d'ajouter une **connexion GitHub** à votre compte (vercel.com → Account Settings → Authentication → Connect GitHub). Une fois fait : `npx vercel@latest git connect`.
+
+Pour utiliser votre propre nom de domaine : Vercel → projet → Settings → Domains, puis mettez à jour `NEXT_PUBLIC_SITE_URL` et ajoutez le domaine dans Neon → Auth → Domains (domaines de confiance).
 
 ---
 
 ## 7. Vérifications
 
-- `npm test` : 65 tests automatiques (sécurité de la base, signatures de paiement, formats).
+- `npm test` : 64 tests automatiques (sécurité de la base, signatures de paiement, formats).
 - `npm run build` : doit se terminer sans erreur.
 - Parcours à tester dans le navigateur :
   1. Se connecter → créer une invitation → l'aperçu s'affiche.
   2. Administration → Invitations → **Offrir Essentiel** sur votre invitation (pour tester sans payer).
   3. Publier → copier le lien → l'ouvrir dans une fenêtre privée → répondre « Je serai présent(e) ».
-  4. Revenir sur votre espace : la réponse apparaît sans recharger la page.
+  4. Revenir sur votre espace : la réponse apparaît en quelques secondes, sans recharger la page.
