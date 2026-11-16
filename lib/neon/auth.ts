@@ -33,6 +33,14 @@ export function getAuth(): NeonAuth {
         // « lax » : nécessaire pour revenir de Google (navigation depuis un autre site)
         sameSite: "lax",
       },
+      logger: {
+        // Pendant la préparation d'une page, Next.js interrompt volontairement les appels réseau :
+        // le SDK le signale comme erreur alors que la page se rend normalement. On ne garde que les vraies erreurs.
+        error(message, meta) {
+          if (JSON.stringify(meta ?? "").includes("During prerendering")) return;
+          console.error(message, meta);
+        },
+      },
     }) as unknown as NeonAuth;
   }
   return instance;

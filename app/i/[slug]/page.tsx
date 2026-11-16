@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { CalendarPlus, MessageCircle } from "lucide-react";
 import { InvitationView } from "@/components/invitation/invitation-view";
@@ -11,13 +12,14 @@ import { RsvpForm } from "./rsvp-form";
 /** Page invité : non indexée (règle 6), légère (< 500 Ko). */
 export async function generateMetadata({ params }: PageProps<"/i/[slug]">): Promise<Metadata> {
   const { slug } = await params;
+  // get_public_event ne renvoie que les invitations publiées, payées et non suspendues.
   const event = await getPublicEvent(slug);
-  const ok = event && isPublic(event);
+  const ok = Boolean(event);
   return {
-    title: ok ? event.title : "Invitation",
-    description: ok && event.starts_at ? `${formatDate(event.starts_at)}${event.city ? ` — ${event.city}` : ""}` : undefined,
+    title: event ? event.title : "Invitation",
+    description: event?.starts_at ? `${formatDate(event.starts_at)}${event.city ? ` — ${event.city}` : ""}` : undefined,
     robots: { index: false, follow: false, nocache: true },
-    openGraph: ok ? { title: event.title, type: "website" } : undefined,
+    openGraph: ok && event ? { title: event.title, type: "website" } : undefined,
   };
 }
 
@@ -34,6 +36,8 @@ export default function GuestPage({ params }: PageProps<"/i/[slug]">) {
 async function GuestInvitation({ params }: { params: PageProps<"/i/[slug]">["params"] }) {
   const { slug } = await params;
   const event = await getPublicEvent(slug);
+  // La validité de la formule dépend de l'heure : on la vérifie à chaque requête, jamais à la préparation de la page.
+  await connection();
 
   if (!event || !isPublic(event)) {
     return (
