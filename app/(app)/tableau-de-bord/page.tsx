@@ -86,7 +86,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/tableau-d
                 href={`/tableau-de-bord/evenements/${e.id}`}
                 className="group block overflow-hidden rounded-2xl border border-ink/10 bg-white p-2 transition hover:border-brand/40 hover:shadow-card-hover"
               >
-                <InvitationCard theme={e.theme} category={eventTypeLabel(e.event_type)} names={e.hosts || e.title} className="aspect-[4/3] rounded-xl" />
+                <InvitationCard theme={e.theme} category={eventTypeLabel(e.event_type)} names={e.hosts || e.title} className="aspect-[4/5] rounded-xl" />
                 <div className="px-3 pt-4 pb-3">
                   <div className="flex items-center justify-between gap-2">
                     <StatusBadge event={e} />

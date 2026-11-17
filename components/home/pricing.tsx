@@ -8,16 +8,15 @@ import { cn } from "@/lib/utils";
 
 export function Pricing({ showSamples }: { showSamples: boolean }) {
   return (
-    <section id="tarifs" aria-labelledby="tarifs-titre" className="scroll-mt-20 border-y border-ink/8 bg-white">
+    <section id="tarifs" aria-labelledby="tarifs-titre" className="scroll-mt-20 bg-paper">
       <div className="mx-auto w-full max-w-[1200px] px-5 py-16 lg:py-24">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
             id="tarifs-titre"
-            eyebrow="Tarifs en FCFA"
             title="Un prix doux pour chaque fête"
             subtitle={`Payez avec Orange Money ou Moov Money. Paiement unique, formule active ${PLAN_DURATION_MONTHS} mois, sans abonnement.`}
           />
-          <p className="inline-flex flex-wrap items-center gap-3 rounded-xl border border-ink/8 bg-paper px-4 py-3 text-sm font-bold text-ink">
+          <p className="inline-flex flex-wrap items-center gap-3 rounded-xl border border-ink/8 bg-white px-4 py-3 text-sm font-bold text-ink">
             <ShieldCheck className="size-4 text-brand" aria-hidden="true" />
             Paiement sécurisé via :
             <PaymentBadges />
@@ -32,7 +31,7 @@ export function Pricing({ showSamples }: { showSamples: boolean }) {
                 key={plan.id}
                 className={cn(
                   "relative flex flex-col rounded-2xl p-7",
-                  featured ? "bg-night-glow text-white shadow-float" : "border border-ink/8 bg-paper text-ink",
+                  featured ? "bg-night-glow text-white shadow-float" : "border border-ink/8 bg-white text-ink",
                 )}
               >
                 <div className="flex items-center justify-between gap-3">

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowLeft, Download, Eye, MessageCircle, Pencil, RefreshCw } from "lucide-react";
@@ -8,6 +7,7 @@ import { getTheme } from "@/config/themes";
 import { ButtonLink } from "@/components/button-link";
 import { ActionButton } from "@/components/dashboard/action-button";
 import { CopyLink } from "@/components/dashboard/copy-link";
+import { InvitationCard } from "@/components/invitation-card";
 import { RsvpLive } from "@/components/dashboard/rsvp-live";
 import { PlanBadge, StatusBadge } from "@/components/dashboard/status-badge";
 import { buttonClass } from "@/components/ui/button-class";
@@ -98,28 +98,15 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         {/* Carte + IA image */}
         <div className="space-y-4">
-          <div
-            className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-2xl p-6 shadow-card"
-            style={{ backgroundColor: theme.color }}
-          >
-            <Image
-              src={theme.image}
-              alt=""
-              fill
-              sizes="360px"
-              className="object-cover"
-            />
-            <div
-              className="relative w-full max-w-[230px] rounded-xl px-4 py-7 text-center"
-              style={{ backgroundColor: theme.colors.panel, color: theme.colors.text, outline: `1px solid ${theme.colors.accent}`, outlineOffset: "-6px" }}
-            >
-              <p className="text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: theme.colors.accent }}>
-                {eventTypeLabel(event.event_type)}
-              </p>
-              <p className="mt-2 font-heading text-xl leading-tight font-semibold">{event.hosts || event.title}</p>
-              {event.starts_at && <p className="mt-2 text-[11px] font-semibold">{formatDate(event.starts_at)}</p>}
-            </div>
-          </div>
+          <InvitationCard
+            theme={event.theme}
+            category={eventTypeLabel(event.event_type)}
+            names={event.hosts || event.title}
+            date={event.starts_at ? formatDate(event.starts_at) : undefined}
+            place={event.city ?? undefined}
+            sizes="360px"
+            className="aspect-[4/5] rounded-2xl border border-ink/10"
+          />
 
           <p className="text-center text-sm text-ink/60">
             Fond : <span className="font-bold text-ink">{theme.name}</span>.{" "}

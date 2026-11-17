@@ -154,13 +154,13 @@ describe("fonds d'invitation (100)", () => {
   it("fond par défaut à la création", async () => {
     const id = await createEvent(A, "fond-defaut-aaaa-0060");
     const rows = await as<{ theme: string }>(A, "select theme from public.events where id = $1", [id]);
-    expect(rows[0].theme).toBe("faso-dan-fani--origine");
+    expect(rows[0].theme).toBe("feuillage--ivoire");
   });
 
   it("accepte un fond « style--coloris »", async () => {
-    const id = await createEvent(A, "fond-wax-aaaa-0061");
-    await as(A, "update public.events set theme = 'wax--braise' where id = $1", [id]);
-    expect((await as<{ theme: string }>(A, "select theme from public.events where id = $1", [id]))[0].theme).toBe("wax--braise");
+    const id = await createEvent(A, "fond-deco-aaaa-0061");
+    await as(A, "update public.events set theme = 'deco--nuit' where id = $1", [id]);
+    expect((await as<{ theme: string }>(A, "select theme from public.events where id = $1", [id]))[0].theme).toBe("deco--nuit");
   });
 
   it("refuse un format de fond invalide ou trop long", async () => {

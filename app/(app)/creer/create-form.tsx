@@ -30,10 +30,10 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-export function CreateForm({ aiEnabled }: { aiEnabled: boolean }) {
+export function CreateForm({ aiEnabled, defaultType = "mariage" }: { aiEnabled: boolean; defaultType?: EventType }) {
   const [state, action] = useActionState<ActionState, FormData>(createInvitation, null);
-  const [eventType, setEventType] = useState<EventType>("mariage");
-  const [theme, setTheme] = useState<ThemeId>(DEFAULT_THEME);
+  const [eventType, setEventType] = useState<EventType>(defaultType);
+  const [theme, setTheme] = useState<ThemeId>(() => EVENT_TYPES.find((t) => t.id === defaultType)?.defaultTheme ?? DEFAULT_THEME);
   const err = state?.fieldErrors ?? {};
 
   const onTypeChange = (value: EventType) => {
@@ -121,7 +121,7 @@ export function CreateForm({ aiEnabled }: { aiEnabled: boolean }) {
               id="details"
               name="details"
               maxLength={600}
-              placeholder="Ex. : cérémonie religieuse puis réception ; tenue en Faso Dan Fani souhaitée ; prière de confirmer avant le 1er décembre."
+              placeholder="Ex. : cérémonie religieuse puis réception ; tenue traditionnelle souhaitée ; prière de confirmer avant le 1er décembre."
             />
           </Field>
         </div>

@@ -1,75 +1,83 @@
 import Link from "next/link";
-import { templateExamples } from "@/config/home";
-import { siteConfig } from "@/config/site";
-import { ButtonLink } from "@/components/button-link";
+import { eventTypeOfCategory, templateExamples } from "@/config/home";
+import { COLORWAYS, STYLES, THEMES, type ThemeId } from "@/config/themes";
 import { InvitationCard } from "@/components/invitation-card";
 import { SectionHeading } from "@/components/section-heading";
 
+/** Galerie des modèles : l'invitation est la carte, la légende reste discrète dessous. */
 export function TemplateGallery() {
   return (
     <section id="modeles" aria-labelledby="modeles-titre" className="scroll-mt-20 bg-paper">
       <div className="mx-auto w-full max-w-[1200px] px-5 py-16 lg:py-24">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <SectionHeading
-            id="modeles-titre"
-            eyebrow="Inspiration"
-            title="Des cartes qui ressemblent à vos fêtes"
-            subtitle="Choisissez un fond, l'IA rédige le texte, puis vous modifiez tout à votre goût."
-          />
-          <ButtonLink href={siteConfig.routes.create} variant="dark">
-            Créer la mienne
-          </ButtonLink>
-        </div>
+        <SectionHeading
+          id="modeles-titre"
+          title="Des invitations qu'on a envie de garder"
+          subtitle="Partez d'un modèle. Le texte, le style et les couleurs se changent en quelques secondes."
+        />
 
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-10">
           {templateExamples.map((tpl) => (
-            <li
-              key={tpl.id}
-              className="group overflow-hidden rounded-2xl border border-ink/8 bg-white p-2 transition-all hover:border-brand hover:shadow-card-hover"
-            >
+            <li key={tpl.id}>
               <Link
                 href={`/exemple/${tpl.id}`}
                 aria-label={`Voir l'exemple : ${tpl.title}`}
-                className="block overflow-hidden rounded-xl"
+                className="block overflow-hidden rounded-xl shadow-card transition-shadow hover:shadow-card-hover focus-visible:ring-3 focus-visible:ring-brand/40 focus-visible:outline-none"
               >
                 <InvitationCard
                   theme={tpl.theme}
                   category={tpl.category}
                   names={tpl.names}
                   date={tpl.date}
-                  className="aspect-[4/3.4]"
+                  place={tpl.place}
+                  size="lg"
+                  sizes="(min-width: 1024px) 380px, 50vw"
+                  className="aspect-[4/5]"
                 />
               </Link>
-              <div className="flex items-center justify-between gap-3 px-3 pt-4 pb-2">
-                <div className="min-w-0">
-                  <p className="inline-flex rounded-md bg-brand-soft px-2 py-0.5 text-[11px] font-bold text-brand">
-                    {tpl.category}
-                  </p>
-                  <h3 className="mt-1.5 truncate text-lg font-bold text-ink">{tpl.title}</h3>
-                  <p className="truncate text-[13px] text-ink/55">{tpl.place}</p>
-                </div>
-                <div className="flex shrink-0 gap-1.5">
-                  <ButtonLink
+              <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h3 className="font-sans text-[15px] font-bold tracking-normal text-ink">{tpl.category}</h3>
+                <p className="flex gap-4 text-sm font-semibold">
+                  <Link
+                    href={`/creer?type=${eventTypeOfCategory(tpl.category)}`}
+                    aria-label={`Utiliser le modèle ${tpl.title}`}
+                    className="text-brand underline-offset-4 hover:underline"
+                  >
+                    Utiliser ce modèle
+                  </Link>
+                  <Link
                     href={`/exemple/${tpl.id}`}
-                    variant="outline"
-                    size="sm"
                     aria-label={`Voir l'exemple ${tpl.title}`}
+                    className="text-ink/60 underline-offset-4 hover:text-ink hover:underline"
                   >
                     Voir
-                  </ButtonLink>
-                  <ButtonLink
-                    href={siteConfig.routes.create}
-                    variant="soft"
-                    size="sm"
-                    aria-label={`Utiliser le modèle ${tpl.title}`}
-                  >
-                    Utiliser
-                  </ButtonLink>
-                </div>
+                  </Link>
+                </p>
               </div>
             </li>
           ))}
         </ul>
+
+        {/* Toute la collection, en une ligne */}
+        <div className="mt-14 flex flex-col gap-4 border-t border-ink/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-3xl text-[15px] leading-relaxed text-ink/70">
+            <span className="font-bold text-ink">
+              {STYLES.length} styles, chacun en {COLORWAYS.length} coloris.
+            </span>{" "}
+            {STYLES.map((s) => s.name).join(", ")}.
+          </p>
+          <ul className="flex shrink-0 gap-1.5" aria-label={`Les ${COLORWAYS.length} coloris`}>
+            {COLORWAYS.map((cw) => (
+              <li
+                key={cw.id}
+                title={cw.name}
+                className="size-6 rounded-full border border-ink/15"
+                style={{ backgroundColor: THEMES[`${STYLES[0].id}--${cw.id}` as ThemeId].swatch }}
+              >
+                <span className="sr-only">{cw.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

@@ -4,18 +4,9 @@ import { Sparkles } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { InvitationView } from "@/components/invitation/invitation-view";
 import { Notice } from "@/components/ui/notice";
-import { templateExamples } from "@/config/home";
+import { eventTypeOfCategory, templateExamples } from "@/config/home";
 import { RsvpForm } from "@/app/(site)/i/[slug]/rsvp-form";
 import type { EventRow, EventType } from "@/lib/types";
-
-const TYPE_BY_CATEGORY: Record<string, EventType> = {
-  Mariage: "mariage",
-  Anniversaire: "anniversaire",
-  Baptême: "bapteme",
-  Funérailles: "funerailles",
-  Entreprise: "entreprise",
-  Dot: "dot",
-};
 
 const MESSAGES: Record<EventType, string> = {
   mariage: "Les familles ont la joie de vous convier à la célébration de ce mariage. Votre présence sera notre plus beau cadeau.",
@@ -38,7 +29,7 @@ const PROGRAM = [
 function sampleEvent(id: string): EventRow | null {
   const t = templateExamples.find((x) => x.id === id);
   if (!t) return null;
-  const type = TYPE_BY_CATEGORY[t.category] ?? "autre";
+  const type = eventTypeOfCategory(t.category);
   const [venue, city] = t.place.split(" • ");
   const months: Record<string, string> = { décembre: "12", janvier: "01" };
   const m = t.date.match(/(\d{1,2}) (\S+) (\d{4})/); // \S : « décembre » contient un caractère accentué
@@ -57,7 +48,7 @@ function sampleEvent(id: string): EventRow | null {
     maps_url: null,
     message: MESSAGES[type] || null,
     program: PROGRAM,
-    dress_code: type === "mariage" || type === "dot" ? "Faso Dan Fani" : null,
+    dress_code: type === "mariage" || type === "dot" ? "Tenue traditionnelle" : null,
     rsvp_deadline: null,
     contact_phone: null,
     language: "fr",
@@ -98,7 +89,7 @@ export default async function ExamplePage({ params }: PageProps<"/exemple/[id]">
       <InvitationView event={event}>
         <RsvpForm slug={event.slug} demo />
         <div className="mt-6 text-center">
-          <ButtonLink href="/creer" size="lg">
+          <ButtonLink href={`/creer?type=${event.event_type}`} size="lg">
             <Sparkles />
             Créer la mienne
           </ButtonLink>

@@ -2,41 +2,35 @@
  * Textes et exemples de la page d'accueil.
  * Les exemples de cartes sont des modèles fictifs (pas des clients réels).
  */
+import type { EventType } from "@/lib/types";
 import type { ThemeId } from "./themes";
 
-export type EventIcon = "heart" | "cake" | "baby" | "flower" | "briefcase";
-
-export const eventTypes: {
-  title: string;
-  subtitle: string;
-  icon: EventIcon;
-  /** Classe Tailwind de la pastille d'icône */
-  tone: string;
-}[] = [
-  { title: "Mariages", subtitle: "Liens & RSVP élégants", icon: "heart", tone: "bg-brand text-white" },
-  { title: "Anniversaires", subtitle: "Festif & coloré", icon: "cake", tone: "bg-sun text-night" },
-  { title: "Baptêmes", subtitle: "Doux & lumineux", icon: "baby", tone: "bg-[#0E8A66] text-white" },
-  { title: "Funérailles", subtitle: "Sobre & respectueux", icon: "flower", tone: "bg-night-soft text-white" },
-  { title: "Entreprise", subtitle: "Pro & moderne", icon: "briefcase", tone: "bg-night text-white" },
-];
-
-export const steps: { title: string; text: string; icon: "layout" | "pen" | "send" }[] = [
+/** Les trois étapes de « Comment ça marche » (une vraie séquence : l'ordre compte). */
+export const steps: { title: string; text: string }[] = [
   {
     title: "Choisissez l'événement",
-    text: "Mariage, baptême, anniversaire… Choisissez un modèle inspiré du Faso Dan Fani et du bogolan.",
-    icon: "layout",
+    text: "Mariage, baptême, anniversaire, funérailles… puis un style et un coloris parmi les modèles.",
   },
   {
-    title: "Remplissez le formulaire",
-    text: "L'IA rédige vos textes en français, ajoute photos, lieu, date et programme en un instant.",
-    icon: "pen",
+    title: "Indiquez l'essentiel",
+    text: "Les prénoms, la date et le lieu. L'IA rédige le titre, le message et le programme ; vous pouvez tout modifier.",
   },
   {
     title: "Partagez le lien",
-    text: "Envoyez sur WhatsApp, suivez les confirmations et relancez vos invités en temps réel.",
-    icon: "send",
+    text: "Envoyez-le sur WhatsApp. Vos invités répondent en un geste et vous suivez les confirmations.",
   },
 ];
+
+/** Type d'événement d'un exemple, pour ouvrir le formulaire de création déjà réglé. */
+const TYPE_BY_CATEGORY: Record<string, EventType> = {
+  Mariage: "mariage",
+  Anniversaire: "anniversaire",
+  Baptême: "bapteme",
+  Funérailles: "funerailles",
+  Entreprise: "entreprise",
+  Dot: "dot",
+};
+export const eventTypeOfCategory = (category: string): EventType => TYPE_BY_CATEGORY[category] ?? "autre";
 
 export interface TemplateExample {
   id: string;
@@ -57,7 +51,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Awa & Moussa",
     date: "samedi 12 décembre 2026",
     place: "Jardin des Manguiers • Ouagadougou",
-    theme: "faso-dan-fani--origine",
+    theme: "feuillage--ivoire",
   },
   {
     id: "anniversaire-fatou",
@@ -66,7 +60,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Fatou a 30 ans",
     date: "samedi 19 décembre 2026",
     place: "Terrasse Le Baobab • Bobo-Dioulasso",
-    theme: "wax--origine",
+    theme: "confettis--rose",
   },
   {
     id: "bapteme-nafissa",
@@ -75,7 +69,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Bienvenue Nafissa",
     date: "dimanche 10 janvier 2027",
     place: "Cour familiale • Koudougou",
-    theme: "coton--origine",
+    theme: "aura--azur",
   },
   {
     id: "funerailles-kone",
@@ -84,7 +78,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Hommage à Papa Koné",
     date: "samedi 16 janvier 2027",
     place: "Cérémonie • Ouahigouya",
-    theme: "adinkra--cendre",
+    theme: "epure--cendre",
   },
   {
     id: "entreprise-gala",
@@ -93,7 +87,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Gala de fin d'année",
     date: "vendredi 18 décembre 2026",
     place: "Salle des fêtes • Ouagadougou",
-    theme: "ardoise--origine",
+    theme: "deco--nuit",
   },
   {
     id: "dot-mariam-seydou",
@@ -102,15 +96,15 @@ export const templateExamples: TemplateExample[] = [
     names: "Mariam & Seydou",
     date: "samedi 9 janvier 2027",
     place: "Cour familiale • Bamako",
-    theme: "senoufo--origine",
+    theme: "arche--argile",
   },
 ];
 
-/** Invitation affichée dans le téléphone du hero */
+/** Invitation d'exemple de référence (aperçus, tests) */
 export const heroInvitation = {
   category: "Mariage",
   names: "Aminata & Ibrahim",
   date: "samedi 12 décembre 2026",
   city: "Ouagadougou",
-  theme: "faso-dan-fani--origine" as ThemeId,
+  theme: "feuillage--ivoire" as ThemeId,
 };

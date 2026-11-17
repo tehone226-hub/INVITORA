@@ -10,7 +10,7 @@ export function Testimonials() {
   return (
     <section aria-labelledby="avis-titre" className="bg-paper">
       <div className="mx-auto w-full max-w-[1200px] px-5 pt-16 lg:pt-24">
-        <SectionHeading id="avis-titre" eyebrow="Avis" title="Ils ont invité avec Invitora" />
+        <SectionHeading id="avis-titre" title="Ils ont invité avec Invitora" />
 
         <ul className="mt-10 grid gap-4 md:grid-cols-3">
           {sampleContent.testimonials.map((t) => (

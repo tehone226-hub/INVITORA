@@ -1,6 +1,5 @@
-import Image from "next/image";
 import { CalendarDays, Clock, MapPin, Phone, Shirt } from "lucide-react";
-import { getTheme } from "@/config/themes";
+import { InvitationCard } from "@/components/invitation-card";
 import { eventTypeLabel } from "@/lib/event-types";
 import { formatDate, formatTime } from "@/lib/format";
 import type { EventRow } from "@/lib/types";
@@ -13,58 +12,25 @@ const mapsLink = (e: EventRow) =>
 
 /** Carte d'invitation complète (sans le formulaire RSVP, passé en `children`). */
 export function InvitationView({ event, children, actions }: { event: EventRow; children?: React.ReactNode; actions?: React.ReactNode }) {
-  const theme = getTheme(event.theme);
-  const [first, second] = (event.hosts ?? "").split(" & ");
   const map = mapsLink(event);
 
   return (
     <article className="mx-auto w-full max-w-md">
-      {/* Carte illustrée : fond sans texte + textes en HTML (règle 2) */}
-      <div
-        className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-3xl p-7 shadow-float"
-        style={{ backgroundColor: theme.color }}
-      >
-        <Image
-          src={theme.image}
-          alt=""
-          fill
-          loading="eager"
-          fetchPriority="high"
-          sizes="(min-width: 480px) 448px, 100vw"
-          className="object-cover"
-        />
-        <div
-          className="relative flex w-full max-w-[290px] flex-col items-center gap-2.5 rounded-2xl px-5 py-9 text-center shadow-[0_12px_36px_rgba(0,0,0,0.25)]"
-          style={{ backgroundColor: theme.colors.panel, color: theme.colors.text, outline: `1px solid ${theme.colors.accent}`, outlineOffset: "-7px" }}
-        >
-          <span className="text-[11px] font-bold tracking-[0.22em] uppercase" style={{ color: theme.colors.accent }}>
-            {eventTypeLabel(event.event_type)}
-          </span>
-          <h1 className="font-heading text-[30px] leading-[1.1] font-semibold text-balance">
-            {second !== undefined ? (
-              <>
-                {first}
-                <span className="block text-2xl italic" style={{ color: theme.colors.accent }}>
-                  &amp;
-                </span>
-                {second}
-              </>
-            ) : (
-              event.hosts || event.title
-            )}
-          </h1>
-          {event.starts_at && (
-            <p className="mt-1 text-sm font-semibold">
-              {formatDate(event.starts_at)}
-              <br />
-              {formatTime(event.starts_at)}
-            </p>
-          )}
-          {event.city && <p className="text-[13px] opacity-80">{event.city}</p>}
-        </div>
-      </div>
+      {/* Invitation : fond sans texte + textes en HTML posés dessus (règle 2) */}
+      <InvitationCard
+        theme={event.theme}
+        category={eventTypeLabel(event.event_type)}
+        names={event.hosts || event.title}
+        date={event.starts_at ? formatDate(event.starts_at) : undefined}
+        time={event.starts_at ? formatTime(event.starts_at) : undefined}
+        place={event.city ?? undefined}
+        heading="h1"
+        eager
+        sizes="(min-width: 480px) 448px, 100vw"
+        className="aspect-[4/5] rounded-2xl shadow-float"
+      />
 
-      <div className="relative -mt-6 rounded-2xl border border-ink/8 bg-white px-5 pt-9 pb-7 shadow-card sm:px-7">
+      <div className="mt-4 rounded-2xl border border-ink/8 bg-white px-5 pt-7 pb-7 sm:px-7">
         <h2 className="text-center font-heading text-[26px] leading-tight font-extrabold text-balance">{event.title}</h2>
         {event.message && <p className="mt-4 text-center text-[15px] leading-relaxed whitespace-pre-line text-ink/75">{event.message}</p>}
 

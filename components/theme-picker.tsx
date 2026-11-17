@@ -7,7 +7,7 @@ import { COLORWAYS, DEFAULT_THEME, STYLES, THEMES, getTheme, type ColorwayId, ty
 import { cn } from "@/lib/utils";
 
 /**
- * Choix du fond d'invitation en deux temps : le style (10 étoffes), puis le coloris (10 couleurs),
+ * Choix du fond d'invitation en deux temps : le style (10 styles), puis le coloris (10 couleurs),
  * soit 100 fonds. Le style affiché reflète toujours le coloris choisi.
  * La valeur choisie est envoyée avec le formulaire dans le champ caché « name ».
  */
@@ -41,7 +41,7 @@ export function ThemePicker({
       </p>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Coloris du fond">
         {COLORWAYS.map((cw) => {
-          const swatch = THEMES[`${current.styleId}--${cw.id}` as ThemeId].color;
+          const swatch = THEMES[`${current.styleId}--${cw.id}` as ThemeId].swatch;
           const active = current.colorwayId === cw.id;
           return (
             <button
@@ -54,7 +54,7 @@ export function ThemePicker({
               onClick={() => pick(current.styleId, cw.id)}
               className={cn(
                 "flex size-9 items-center justify-center rounded-full border-2 transition",
-                active ? "border-ink ring-2 ring-brand/40 ring-offset-2 ring-offset-white" : "border-white shadow-card hover:scale-110",
+                active ? "border-white ring-2 ring-brand ring-offset-1 ring-offset-white" : "border-white ring-1 ring-ink/15 hover:scale-110",
               )}
               style={{ backgroundColor: swatch }}
             >
@@ -79,15 +79,14 @@ export function ThemePicker({
               aria-checked={active}
               onClick={() => pick(style.id, current.colorwayId)}
               className={cn(
-                "group relative aspect-[4/5] overflow-hidden rounded-xl text-left ring-offset-2 ring-offset-white transition",
+                "group relative overflow-hidden rounded-xl bg-white text-left ring-offset-2 ring-offset-white transition",
                 active ? "ring-3 ring-brand" : "ring-1 ring-ink/10 hover:ring-ink/30",
               )}
-              style={{ backgroundColor: t.color }}
             >
-              <Image src={t.image} alt="" fill sizes="(min-width: 640px) 150px, 44vw" className="object-cover" />
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/85 to-transparent px-2.5 pt-8 pb-2 text-[13px] font-bold text-paper">
-                {style.name}
+              <span className="relative block aspect-[4/5]" style={{ backgroundColor: t.color }}>
+                <Image src={t.image} alt="" fill sizes="(min-width: 640px) 150px, 44vw" className="object-cover" />
               </span>
+              <span className={cn("block px-2.5 py-2 text-[13px] font-bold", active ? "text-brand" : "text-ink")}>{style.name}</span>
               {active && (
                 <span className="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-brand text-paper">
                   <Check className="size-3.5" aria-hidden="true" />

@@ -28,8 +28,25 @@ describe("100 fonds d'invitation", () => {
     }
   });
 
+  it("texte et accent lisibles sur le fond de chaque coloris (contraste ≥ 4,5)", () => {
+    const lum = (hex: string) => {
+      const c = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const contrast = (a: string, b: string) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+    for (const cw of COLORWAYS) {
+      const t = THEMES[`epure--${cw.id}`];
+      expect(contrast(t.colors.text, t.color), `${cw.id} : texte`).toBeGreaterThanOrEqual(7);
+      expect(contrast(t.colors.accent, t.color), `${cw.id} : accent`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("identifiants valides, repli sur le fond par défaut, anciens identifiants convertibles", () => {
-    expect(isThemeId("wax--braise")).toBe(true);
+    expect(isThemeId("deco--nuit")).toBe(true);
+    expect(isThemeId("wax--braise")).toBe(false);
+    // Une invitation créée avec une ancienne étoffe reçoit le fond correspondant de la nouvelle collection
+    expect(getTheme("wax--braise").id).toBe("confettis--rose");
+    expect(getTheme("faso-dan-fani").id).toBe("feuillage--ivoire");
     expect(isThemeId("wax")).toBe(false);
     expect(isThemeId("constructor")).toBe(false);
     expect(isThemeId("__proto__")).toBe(false);

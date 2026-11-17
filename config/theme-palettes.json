@@ -1,0 +1,12 @@
+{
+  "ivoire": { "name": "Ivoire", "dark": false, "bg": "#FBF7F0", "soft": "#F3EADC", "t1": "#E9D8C3", "t2": "#CDAE8C", "t3": "#8F7052", "metal": "#B8934F", "ink": "#2A2420", "accent": "#8A6A3C" },
+  "rose": { "name": "Rose poudré", "dark": false, "bg": "#FCF3F1", "soft": "#F7E3DF", "t1": "#F0CBC5", "t2": "#DCA29F", "t3": "#A8616B", "metal": "#C29A5B", "ink": "#3A272B", "accent": "#9A5560" },
+  "sauge": { "name": "Sauge", "dark": false, "bg": "#F5F7F1", "soft": "#E6ECDE", "t1": "#CBD8C1", "t2": "#94AB8D", "t3": "#56705A", "metal": "#B39A5A", "ink": "#232D26", "accent": "#4F6A54" },
+  "argile": { "name": "Argile", "dark": false, "bg": "#FAF0E7", "soft": "#F3DFCF", "t1": "#E9BFA3", "t2": "#CE8158", "t3": "#944E30", "metal": "#B98C4E", "ink": "#33231B", "accent": "#8F4A2D" },
+  "azur": { "name": "Azur", "dark": false, "bg": "#F2F6FA", "soft": "#DFE9F2", "t1": "#BCD2E6", "t2": "#7FA4C8", "t3": "#3D668F", "metal": "#B69B62", "ink": "#1D2937", "accent": "#37608A" },
+  "lavande": { "name": "Lavande", "dark": false, "bg": "#F6F3FB", "soft": "#E8E1F5", "t1": "#D3C7EC", "t2": "#A693D2", "t3": "#6A549F", "metal": "#B89A5E", "ink": "#29233F", "accent": "#62509A" },
+  "nuit": { "name": "Nuit", "dark": true, "bg": "#0F1830", "soft": "#17234A", "t1": "#22346A", "t2": "#3A5196", "t3": "#8FA6DC", "metal": "#D7B46A", "ink": "#F6EEDF", "accent": "#D7B46A" },
+  "emeraude": { "name": "Émeraude", "dark": true, "bg": "#0D2B25", "soft": "#133A32", "t1": "#1D5145", "t2": "#2F7A66", "t3": "#8CC5B0", "metal": "#D9B76C", "ink": "#F5EFE0", "accent": "#D9B76C" },
+  "bordeaux": { "name": "Bordeaux", "dark": true, "bg": "#2A0E17", "soft": "#3B1422", "t1": "#561D31", "t2": "#8A3350", "t3": "#D8A0AE", "metal": "#DDB872", "ink": "#F8EEE4", "accent": "#DDB872" },
+  "cendre": { "name": "Cendre", "dark": false, "bg": "#F4F3F1", "soft": "#E6E5E2", "t1": "#D2D1CD", "t2": "#A5A4A0", "t3": "#63625F", "metal": "#9A9893", "ink": "#222222", "accent": "#5A5956" }
+}

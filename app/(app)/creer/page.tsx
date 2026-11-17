@@ -4,6 +4,7 @@ import { SetupRequired } from "@/components/setup-required";
 import { requireUser } from "@/lib/auth";
 import { isBackendConfigured } from "@/lib/env";
 import { features } from "@/lib/env-server";
+import { isEventType } from "@/lib/event-types";
 import { CreateForm } from "./create-form";
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function CreatePage() {
+export default function CreatePage({ searchParams }: PageProps<"/creer">) {
   if (!isBackendConfigured) return <SetupRequired what="la création d'invitation" />;
   return (
     <section className="mx-auto w-full max-w-3xl px-5 py-8 lg:py-10">
@@ -22,14 +23,17 @@ export default function CreatePage() {
       </p>
       <div className="mt-8">
         <Suspense fallback={<div className="h-[640px] animate-pulse rounded-2xl bg-mist/60" />}>
-          <CreateContent />
+          <CreateContent searchParams={searchParams} />
         </Suspense>
       </div>
     </section>
   );
 }
 
-async function CreateContent() {
-  await requireUser("/creer");
-  return <CreateForm aiEnabled={features.aiText} />;
+/** `/creer?type=mariage` (boutons de l'accueil) : le type d'événement arrive déjà choisi. */
+async function CreateContent({ searchParams }: { searchParams: PageProps<"/creer">["searchParams"] }) {
+  const { type } = await searchParams;
+  const defaultType = isEventType(type) ? type : undefined;
+  await requireUser(defaultType ? `/creer?type=${defaultType}` : "/creer");
+  return <CreateForm aiEnabled={features.aiText} defaultType={defaultType} />;
 }

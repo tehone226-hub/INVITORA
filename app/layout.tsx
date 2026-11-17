@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Cormorant_Garamond, Plus_Jakarta_Sans } from "next/font/google";
 import { siteConfig } from "@/config/site";
 import { InfoBanner } from "@/components/info-banner";
 import "./globals.css";
@@ -17,6 +17,15 @@ const body = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+// Prénoms sur les invitations : Cormorant Garamond (serif de papeterie), en italique.
+const invite = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  subsets: ["latin"],
+  weight: ["500"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "Invitora — Votre invitation digitale en 30 secondes",
@@ -30,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="fr"
       data-scroll-behavior="smooth"
-      className={`${display.variable} ${body.variable} h-full scroll-smooth antialiased`}
+      className={`${display.variable} ${body.variable} ${invite.variable} h-full scroll-smooth antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <InfoBanner />

@@ -87,17 +87,22 @@ Règles :
 - Dates : « samedi 14 décembre 2026 ». Montants : « 4 900 FCFA » (espace insécable).
 - Messages d'erreur : expliquer et proposer une solution (« Le lien n'a pas pu être envoyé. Vérifiez votre connexion et réessayez. »).
 
-## 7. Les fonds d'invitation : 10 styles × 10 coloris
+## 7. Les invitations : 10 styles × 10 coloris
 
-Les invitations gardent leurs étoffes : c'est le contenu que l'organisateur choisit, pas l'habillage du site. Chaque fond est dessiné par nous (philosophie « Trame Vivante » : `design/art/philosophie-visuelle.md`), **sans aucun texte** : les noms, dates et lieux sont toujours posés par-dessus en HTML/CSS. Il n'y a pas de génération d'images par IA.
+Collection « Papier Silencieux » (philosophie : `design/art/philosophie-visuelle.md`), en vigueur depuis le 17 novembre 2026. Elle remplace les étoffes (Faso Dan Fani, bogolan, wax…), retirées parce qu'elles évoquaient des tapis. L'esprit est celui d'une papeterie de mariage haut de gamme : beaucoup d'air, décor dans les marges et les coins, grain de papier fin, deux ou trois tons et un filet métallique.
 
-**Les 10 styles** : Faso Dan Fani (bandes tissées), Bogolan (symboles sur écru), Tiébélé (murs peints), Indigo de Ouaga (teinture à la réserve), Wax (éventails et cercles), Sénoufo (tissu peint de Korhogo), Adinkra (symboles estampés), Savane (épis de mil), Coton brodé (fleurs et festons), Ardoise (filets d'or sur vert profond).
+**Règles de dessin**
+- Aucun texte dans l'image. Les textes sont posés en HTML **directement sur le fond**, centrés, sans panneau ni cadre : le centre de chaque fond reste calme.
+- Jamais de bordure de motifs répétés, de cadre épais, de médaillon central ni de symétrie de tapis.
+- Typographie de l'invitation (`components/invitation-card.tsx`) : catégorie en petites capitales espacées (couleur d'accent), prénoms en **Cormorant Garamond** italique (`font-invite`), filets fins, date et lieu en Plus Jakarta Sans. Les tailles suivent la taille de la carte.
 
-**Les 10 coloris** de chaque style : Couleurs d'origine, Braise, Ocre, Olive, Forêt, Lagune, Nuit, Prune, Grenade, Cendre (sobre, pour les cérémonies de deuil).
+**Les 10 styles** : Aura (halos de couleur), Arche (arches et soleil en aplats), Feuillage (branches à l'aquarelle), Art déco (filets dorés en éventail), Marbre (veine dorée), Ondes (lignes fines), Confettis (fête), Nuit étoilée (étoiles et croissant de lune), Sahel (soleil bas, acacias, baobab), Épure (un filet, un ornement).
 
-**Fabrication** : `npm run art` (scripts/generate-theme-art.mjs). Les styles sont du dessin vectoriel programmé ; les coloris sont des rotations de teinte. Résultat : `public/demo/themes/<style>--<coloris>.webp` (≈ 70 Ko chacun) et `config/theme-colors.json`.
+**Les 10 coloris** (`config/theme-palettes.json`, lu par le site et par le générateur) : Ivoire, Rose poudré, Sauge, Argile, Azur, Lavande, Nuit, Émeraude, Bordeaux (ces trois derniers sont sombres, texte clair), Cendre (sobre, pour les cérémonies de deuil). Chaque palette fixe le fond, trois tons, un métal, la couleur du texte et une couleur d'accent lisible (contraste vérifié par un test).
 
-**Choix par défaut selon l'événement** : mariage → Faso Dan Fani ; dot → Sénoufo ; baptême → Coton brodé ; anniversaire → Wax ; funérailles → Adinkra (Cendre) ; entreprise → Ardoise ; soutenance → Bogolan.
+**Fabrication** : `npm run art` (`scripts/generate-theme-art.mjs`, styles dans `scripts/art-styles.mjs`). Dessin vectoriel programmé à partir de la palette, rendu en WebP 800 × 1000 : `public/demo/themes/<style>--<coloris>.webp` (≈ 21 Ko chacun).
+
+**Choix par défaut selon l'événement** : mariage → Feuillage Ivoire ; dot → Arche Argile ; baptême → Aura Azur ; anniversaire → Confettis Rose poudré ; funérailles → Épure Cendre ; entreprise → Art déco Nuit ; soutenance → Ondes Azur.
 
 ## 8. Logo
 - Signe : carré violet (`brand`) aux angles arrondis, avec un « i » blanc dont le point est une étincelle mangue à quatre branches.
