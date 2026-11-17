@@ -15,6 +15,7 @@ import { formatFcfa, formatShortDate } from "@/lib/format";
 export const metadata: Metadata = { title: "Administration", robots: { index: false } };
 
 const n = (v: number) => v.toLocaleString("fr-FR");
+const PAYMENT_LABEL: Record<string, string> = { pending: "en attente", paid: "payé", failed: "échoué", expired: "expiré", cancelled: "annulé" };
 
 export default function AdminHome() {
   if (!isBackendConfigured) return <SetupRequired what="l'administration" />;
@@ -83,7 +84,7 @@ async function Overview() {
                   {PLANS[p.plan].name} · {formatFcfa(p.amount)}
                 </span>
                 <span className="text-ink/55">
-                  {formatShortDate(p.created_at)} · {p.status}
+                  {formatShortDate(p.created_at)} · {PAYMENT_LABEL[p.status] ?? p.status}
                 </span>
               </li>
             ))}

@@ -36,6 +36,6 @@ Il n'y a pas de champ pour choisir le réseau : le client choisit Orange Money o
 8. Montant de test : `SASPAY_TEST_AMOUNT_XOF` force un petit montant (règle 4). Un bandeau rouge s'affiche dans l'administration tant qu'il est défini.
 
 ## Points à confirmer avec SasPay
-- Les codes réseau `orange_bf` et `moov_bf` (non cités dans les pages lues ; à vérifier avec `GET /networks/`).
+- ✅ Codes réseau confirmés le 17 novembre 2026 avec `GET /networks/` et la clé réelle : `orange_bf`, `moov_bf` (et `touchcash_bf`), tous actifs.
 - La présence ou non des `metadata` de la session dans le webhook. Si elles sont présentes, on pourra relier directement le paiement sans parcourir les sessions en attente.
 - Le comportement du mode test (`sk_test_`) : peut-il vraiment débiter ?

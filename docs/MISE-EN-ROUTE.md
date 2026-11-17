@@ -10,7 +10,7 @@
 | 100 fonds d'invitation (10 styles × 10 coloris) | ✅ dessinés par nous, dans le site |
 | Textes par l'IA (Gemini) | ✅ clé en place, modèle `gemini-3.5-flash-lite` |
 | Images par l'IA | ⛔ abandonnées : on choisit parmi les 100 fonds |
-| Paiement SasPay | ⏳ clés à ajouter (voir `docs/saspay.md`) |
+| Paiement SasPay | ⏳ clé API `sk_live_` en place (locale et production) ; il manque le secret du webhook `SASPAY_WEBHOOK_SECRET` (voir section 5) |
 | Envoi des e-mails de connexion | ⚠️ expéditeur partagé de Neon : à remplacer avant l'ouverture au public |
 
 Le site fonctionne sans les clés « à ajouter » : textes types si Gemini est indisponible, pas de paiement.

@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/button-link";
 import { InvitationView } from "@/components/invitation/invitation-view";
 import { Notice } from "@/components/ui/notice";
 import { templateExamples } from "@/config/home";
-import { RsvpForm } from "@/app/i/[slug]/rsvp-form";
+import { RsvpForm } from "@/app/(site)/i/[slug]/rsvp-form";
 import type { EventRow, EventType } from "@/lib/types";
 
 const TYPE_BY_CATEGORY: Record<string, EventType> = {
