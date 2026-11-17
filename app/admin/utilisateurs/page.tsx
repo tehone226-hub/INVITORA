@@ -24,11 +24,11 @@ async function Users({ searchParams }: { searchParams: PageProps<"/admin/utilisa
 
   return (
     <div className="space-y-5">
-      <h1 className="text-[30px] leading-tight font-semibold">Utilisateurs</h1>
+      <h1 className="text-[28px] leading-tight font-extrabold sm:text-[32px]">Utilisateurs</h1>
       <FilterBar basePath="/admin/utilisateurs" q={q} placeholder="Nom ou e-mail" />
-      <div className="overflow-x-auto rounded-2xl border border-ink/5 bg-white shadow-card">
+      <div className="overflow-x-auto rounded-xl border border-ink/10 bg-white shadow-card">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="border-b border-ink/10 text-xs text-ink/55 uppercase">
+          <thead className="border-b border-ink/10 bg-paper text-[11px] tracking-wider text-ink/55 uppercase">
             <tr>
               <th className="px-4 py-3 font-bold">Utilisateur</th>
               <th className="px-4 py-3 font-bold">Inscription</th>
@@ -39,7 +39,7 @@ async function Users({ searchParams }: { searchParams: PageProps<"/admin/utilisa
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink/5">
+          <tbody className="divide-y divide-ink/8">
             {users.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-ink/55">

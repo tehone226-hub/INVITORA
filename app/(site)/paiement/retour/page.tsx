@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Paiement", robots: { index: false } 
 export default function PaymentReturnPage(props: PageProps<"/paiement/retour">) {
   return (
     <section className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-5 py-14">
-      <Suspense fallback={<div className="h-48 animate-pulse rounded-3xl bg-sand/60" />}>
+      <Suspense fallback={<div className="h-48 animate-pulse rounded-2xl bg-mist/60" />}>
         <PaymentStatus searchParams={props.searchParams} />
       </Suspense>
     </section>
@@ -45,15 +45,15 @@ async function PaymentStatus({ searchParams }: { searchParams: PageProps<"/paiem
 
   const back = `/tableau-de-bord/evenements/${payment.event_id}`;
   return (
-    <div className="rounded-[28px] border border-ink/5 bg-white p-7 text-center shadow-card">
+    <div className="rounded-2xl border border-ink/8 bg-white p-8 text-center shadow-card">
       {payment.status === "paid" ? (
         <>
-          <h1 className="font-heading text-[28px] font-semibold">Merci, paiement confirmé</h1>
+          <h1 className="font-heading text-[28px] font-extrabold">Merci, paiement confirmé</h1>
           <p className="mt-2 text-[15px] text-ink/60">Votre formule est active. Vous pouvez publier et partager votre invitation.</p>
         </>
       ) : payment.status === "pending" ? (
         <>
-          <h1 className="font-heading text-[28px] font-semibold">Paiement en cours de confirmation</h1>
+          <h1 className="font-heading text-[28px] font-extrabold">Paiement en cours de confirmation</h1>
           <p className="mt-2 text-[15px] text-ink/60">
             Si vous avez validé le paiement sur votre téléphone, la confirmation arrive en général en moins d&apos;une minute.
             Votre formule s&apos;activera automatiquement.
@@ -61,7 +61,7 @@ async function PaymentStatus({ searchParams }: { searchParams: PageProps<"/paiem
         </>
       ) : (
         <>
-          <h1 className="font-heading text-[28px] font-semibold">Le paiement n&apos;a pas abouti</h1>
+          <h1 className="font-heading text-[28px] font-extrabold">Le paiement n&apos;a pas abouti</h1>
           <p className="mt-2 text-[15px] text-ink/60">Aucun montant n&apos;a été validé. Vous pouvez recommencer quand vous le souhaitez.</p>
         </>
       )}

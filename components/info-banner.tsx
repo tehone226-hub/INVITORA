@@ -5,7 +5,7 @@ export async function InfoBanner() {
   const { maintenanceMessage } = await getSiteSettings();
   if (!maintenanceMessage) return null;
   return (
-    <div role="status" className="bg-forest px-5 py-2 text-center text-sm font-semibold text-cream">
+    <div role="status" className="bg-night px-5 py-2 text-center text-sm font-semibold text-paper">
       {maintenanceMessage}
     </div>
   );

@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 
 const LABELS = { yes: "Présent", no: "Absent", maybe: "Peut-être" } as const;
 const TONES = {
-  yes: "bg-[#E7F1EA] text-forest",
+  yes: "bg-[#E3F6EE] text-emerald-700",
   no: "bg-red-50 text-red-700",
-  maybe: "bg-[#FBF1DC] text-[#8A5A12]",
+  maybe: "bg-[#FFF3D6] text-[#8A5300]",
 } as const;
 
 /** Intervalle d'actualisation automatique des réponses (page visible uniquement). */
@@ -97,7 +97,7 @@ export function RsvpLive({
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-sm text-ink/60">
-          <span className={cn("size-2 rounded-full", live ? "bg-forest" : "bg-ink/30")} aria-hidden="true" />
+          <span className={cn("size-2 rounded-full", live ? "animate-pulse bg-emerald-500" : "bg-ink/30")} aria-hidden="true" />
           {live ? "Actualisation automatique" : "Actualisation interrompue, nouvelle tentative…"}
           {guestLimit && (
             <span className="ml-1">
@@ -114,8 +114,8 @@ export function RsvpLive({
               aria-selected={filter === f}
               onClick={() => setFilter(f)}
               className={cn(
-                "h-8 rounded-full px-3 text-xs font-bold",
-                filter === f ? "bg-ink text-cream" : "bg-sand text-ink hover:bg-[#EADCC2]",
+                "h-8 rounded-md px-3 text-xs font-bold",
+                filter === f ? "bg-brand text-white" : "bg-mist text-ink hover:bg-[#DDD8F0]",
               )}
             >
               {f === "all" ? `Toutes (${s.total})` : `${LABELS[f]} (${s[f]})`}
@@ -125,17 +125,17 @@ export function RsvpLive({
       </div>
 
       {shown.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-dashed border-ink/15 px-4 py-8 text-center text-[15px] text-ink/55">
+        <p className="mt-6 rounded-xl border border-dashed border-ink/15 px-4 py-8 text-center text-[15px] text-ink/55">
           {rows.length === 0 ? "Aucune réponse pour le moment. Partagez le lien sur WhatsApp pour recevoir les premières confirmations." : "Aucune réponse dans ce filtre."}
         </p>
       ) : (
-        <ul className="mt-4 divide-y divide-ink/5 rounded-2xl border border-ink/5 bg-white">
+        <ul className="mt-4 divide-y divide-ink/8 rounded-xl border border-ink/10 bg-white">
           {shown.map((r) => (
             <li key={r.id} className="flex flex-wrap items-start gap-3 px-4 py-3.5">
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2 font-bold">
                   {r.name}
-                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-bold", TONES[r.response])}>{LABELS[r.response]}</span>
+                  <span className={cn("rounded-md px-2 py-0.5 text-[11px] font-bold", TONES[r.response])}>{LABELS[r.response]}</span>
                   {r.response !== "no" && r.guests_count > 1 && <span className="text-xs font-semibold text-ink/55">{r.guests_count} pers.</span>}
                 </p>
                 {r.message && <p className="mt-1 text-sm text-ink/70">« {r.message} »</p>}
@@ -150,7 +150,7 @@ export function RsvpLive({
                     href={`https://wa.me/${r.phone.replace(/[^\d]/g, "")}?text=${encodeURIComponent(reminderText)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex h-8 items-center gap-1 rounded-full bg-forest px-3 text-xs font-bold text-cream"
+                    className="flex h-8 items-center gap-1 rounded-md bg-night px-3 text-xs font-bold text-white"
                   >
                     <MessageCircle className="size-3.5" aria-hidden="true" />
                     Relancer
@@ -159,7 +159,7 @@ export function RsvpLive({
                 <button
                   type="button"
                   aria-label={`Supprimer la réponse de ${r.name}`}
-                  className="flex size-8 items-center justify-center rounded-full text-ink/40 hover:bg-red-50 hover:text-red-700"
+                  className="flex size-8 items-center justify-center rounded-lg text-ink/40 hover:bg-red-50 hover:text-red-700"
                   onClick={async () => {
                     if (!window.confirm(`Supprimer la réponse de ${r.name} ?`)) return;
                     const res = await onDelete(r.id);
@@ -179,9 +179,9 @@ export function RsvpLive({
 
 function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div className={cn("rounded-2xl px-4 py-3.5", accent ? "bg-forest text-cream" : "border border-ink/5 bg-white")}>
-      <p className="font-heading text-3xl leading-none font-semibold">{value}</p>
-      <p className={cn("mt-1.5 text-xs font-bold", accent ? "text-cream/80" : "text-ink/55")}>{label}</p>
+    <div className={cn("rounded-xl px-4 py-3.5", accent ? "bg-night-glow text-white" : "border border-ink/10 bg-white")}>
+      <p className="font-heading text-3xl leading-none font-extrabold tabular-nums">{value}</p>
+      <p className={cn("mt-1.5 text-xs font-bold", accent ? "text-white/75" : "text-ink/55")}>{label}</p>
     </div>
   );
 }

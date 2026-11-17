@@ -17,8 +17,8 @@ export const metadata: Metadata = { title: "Choisir une formule", robots: { inde
 
 export default function PlanPage(props: PageProps<"/tableau-de-bord/evenements/[id]/formule">) {
   return (
-    <section className="mx-auto w-full max-w-[1100px] px-5 py-8 sm:py-10">
-      <Suspense fallback={<div className="h-[560px] animate-pulse rounded-3xl bg-sand/60" />}>
+    <section className="mx-auto w-full max-w-[1100px] px-5 py-8 lg:px-8 lg:py-10">
+      <Suspense fallback={<div className="h-[560px] animate-pulse rounded-2xl bg-mist/60" />}>
         <Plans params={props.params} />
       </Suspense>
     </section>
@@ -33,11 +33,11 @@ async function Plans({ params }: { params: PageProps<"/tableau-de-bord/evenement
 
   return (
     <>
-      <Link href={`/tableau-de-bord/evenements/${id}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-ink/60 hover:text-terracotta">
+      <Link href={`/tableau-de-bord/evenements/${id}`} className="inline-flex items-center gap-1.5 text-sm font-bold text-ink/60 hover:text-brand">
         <ArrowLeft className="size-4" aria-hidden="true" />
         Retour à l&apos;invitation
       </Link>
-      <h1 className="mt-4 text-[30px] leading-tight font-semibold">Choisissez votre formule</h1>
+      <h1 className="mt-4 text-[28px] leading-tight font-extrabold sm:text-[32px]">Choisissez votre formule</h1>
       <p className="mt-2 max-w-2xl text-[15px] text-ink/60">
         Pour « {event.title} ». Paiement unique, formule active {PLAN_DURATION_MONTHS} mois, sans abonnement.
       </p>
@@ -61,25 +61,25 @@ async function Plans({ params }: { params: PageProps<"/tableau-de-bord/evenement
             <li
               key={plan.id}
               className={cn(
-                "relative flex flex-col rounded-3xl p-6",
-                featured ? "bg-forest text-cream shadow-card-hover" : "border border-ink/5 bg-white shadow-card",
+                "relative flex flex-col rounded-2xl p-6",
+                featured ? "bg-night-glow text-white shadow-card-hover" : "border border-ink/10 bg-white shadow-card",
               )}
             >
               {featured && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gold px-3 py-1 text-xs font-bold text-forest">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-sun px-3 py-1 text-xs font-bold text-night">
                   Recommandé
                 </span>
               )}
               <h2 className="font-sans text-[15px] font-bold">{plan.name}</h2>
               <p className="mt-2 flex items-baseline gap-2">
-                <span className="font-heading text-4xl font-semibold">{formatAmount(plan.price)}</span>
-                <span className={cn("text-sm font-bold", featured ? "text-cream/80" : "text-ink/60")}>{CURRENCY}</span>
+                <span className="font-heading text-4xl font-extrabold tracking-tight">{formatAmount(plan.price)}</span>
+                <span className={cn("text-sm font-bold", featured ? "text-paper/80" : "text-ink/60")}>{CURRENCY}</span>
               </p>
-              <p className={cn("mt-1 text-[13px]", featured ? "text-cream/75" : "text-ink/55")}>{plan.tagline}</p>
+              <p className={cn("mt-1 text-[13px]", featured ? "text-paper/75" : "text-ink/55")}>{plan.tagline}</p>
               <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
                 {plan.features.map((f) => (
                   <li key={f} className="flex gap-2">
-                    <Check className={cn("mt-0.5 size-4 shrink-0", featured ? "text-gold" : "text-forest")} aria-hidden="true" />
+                    <Check className={cn("mt-0.5 size-4 shrink-0", featured ? "text-sun" : "text-emerald-700")} aria-hidden="true" />
                     {f}
                   </li>
                 ))}
@@ -88,14 +88,14 @@ async function Plans({ params }: { params: PageProps<"/tableau-de-bord/evenement
                 {features.payments ? (
                   <ActionButton
                     action={startCheckout.bind(null, id, plan.id)}
-                    variant={featured ? "gold" : "outline"}
+                    variant={featured ? "sun" : "outline"}
                     pendingLabel="Redirection vers le paiement…"
                     className="[&>button]:w-full"
                   >
                     Payer {formatAmount(plan.price)} {CURRENCY}
                   </ActionButton>
                 ) : (
-                  <button type="button" disabled className="h-11 w-full rounded-full border border-current/20 text-[15px] font-bold opacity-60">
+                  <button type="button" disabled className="h-11 w-full rounded-xl border border-current/20 text-[15px] font-bold opacity-60">
                     Bientôt disponible
                   </button>
                 )}
@@ -107,7 +107,7 @@ async function Plans({ params }: { params: PageProps<"/tableau-de-bord/evenement
 
       <div className="mt-8 flex flex-col items-center gap-3 text-center text-sm text-ink/60">
         <p className="inline-flex flex-wrap items-center justify-center gap-2 font-bold text-ink">
-          <ShieldCheck className="size-4 text-forest" aria-hidden="true" />
+          <ShieldCheck className="size-4 text-emerald-700" aria-hidden="true" />
           Paiement sécurisé sur la page SasPay :
           <PaymentBadges />
         </p>

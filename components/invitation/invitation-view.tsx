@@ -21,7 +21,7 @@ export function InvitationView({ event, children, actions }: { event: EventRow; 
     <article className="mx-auto w-full max-w-md">
       {/* Carte illustrée : fond sans texte + textes en HTML (règle 2) */}
       <div
-        className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-[28px] p-7 shadow-float"
+        className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-3xl p-7 shadow-float"
         style={{ backgroundColor: theme.color }}
       >
         <Image
@@ -64,8 +64,8 @@ export function InvitationView({ event, children, actions }: { event: EventRow; 
         </div>
       </div>
 
-      <div className="relative -mt-6 rounded-[28px] border border-ink/5 bg-white px-5 pt-9 pb-7 shadow-card sm:px-7">
-        <h2 className="text-center font-heading text-2xl leading-tight font-semibold text-balance">{event.title}</h2>
+      <div className="relative -mt-6 rounded-2xl border border-ink/8 bg-white px-5 pt-9 pb-7 shadow-card sm:px-7">
+        <h2 className="text-center font-heading text-[26px] leading-tight font-extrabold text-balance">{event.title}</h2>
         {event.message && <p className="mt-4 text-center text-[15px] leading-relaxed whitespace-pre-line text-ink/75">{event.message}</p>}
 
         <dl className="mt-7 space-y-4 text-[15px]">
@@ -83,7 +83,7 @@ export function InvitationView({ event, children, actions }: { event: EventRow; 
             <InfoRow icon={<MapPin />} label="Lieu">
               {[event.venue, event.address, event.city].filter(Boolean).join(", ")}
               {map && (
-                <a href={map} target="_blank" rel="noopener noreferrer" className="mt-1 block font-bold text-terracotta underline underline-offset-4">
+                <a href={map} target="_blank" rel="noopener noreferrer" className="mt-1 block font-bold text-brand underline underline-offset-4">
                   Voir l&apos;itinéraire
                 </a>
               )}
@@ -96,7 +96,7 @@ export function InvitationView({ event, children, actions }: { event: EventRow; 
           )}
           {event.contact_phone && (
             <InfoRow icon={<Phone />} label="Contact">
-              <a href={`tel:${event.contact_phone.replace(/\s/g, "")}`} className="font-bold text-terracotta underline underline-offset-4">
+              <a href={`tel:${event.contact_phone.replace(/\s/g, "")}`} className="font-bold text-brand underline underline-offset-4">
                 {event.contact_phone}
               </a>
             </InfoRow>
@@ -105,12 +105,12 @@ export function InvitationView({ event, children, actions }: { event: EventRow; 
 
         {event.program?.length > 0 && (
           <section className="mt-8">
-            <h3 className="text-center text-xs font-bold tracking-[0.14em] text-terracotta uppercase">Programme</h3>
-            <ol className="mt-4 space-y-3 border-l-2 border-sand pl-5">
+            <h3 className="mx-auto w-fit rounded-md bg-brand-soft px-2.5 py-1 font-sans text-xs font-bold text-brand">Programme</h3>
+            <ol className="mt-4 space-y-3 border-l-2 border-mist pl-5">
               {event.program.map((p, i) => (
                 <li key={i} className="relative">
-                  <span className="absolute top-1.5 -left-[27px] size-3 rounded-full border-2 border-white bg-gold" aria-hidden="true" />
-                  {p.time && <span className="block text-sm font-bold text-forest">{p.time}</span>}
+                  <span className="absolute top-1.5 -left-[27px] size-3 rounded-full border-2 border-white bg-sun" aria-hidden="true" />
+                  {p.time && <span className="block text-sm font-bold text-brand">{p.time}</span>}
                   <span className="text-[15px] text-ink/80">{p.label}</span>
                 </li>
               ))}
@@ -129,7 +129,7 @@ export function InvitationView({ event, children, actions }: { event: EventRow; 
 function InfoRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <dt className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sand text-forest [&_svg]:size-[18px]">
+      <dt className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand [&_svg]:size-[18px]">
         {icon}
         <span className="sr-only">{label}</span>
       </dt>

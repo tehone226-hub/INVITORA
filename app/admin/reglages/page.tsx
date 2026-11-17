@@ -37,20 +37,20 @@ async function Settings() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-[30px] leading-tight font-semibold">Réglages</h1>
+      <h1 className="text-[28px] leading-tight font-extrabold sm:text-[32px]">Réglages</h1>
 
       <SettingsForm
         showSampleContent={map.get("show_sample_content") === true}
         maintenanceMessage={typeof map.get("maintenance_message") === "string" ? (map.get("maintenance_message") as string) : ""}
       />
 
-      <section className="rounded-2xl border border-ink/5 bg-white p-5 shadow-card sm:p-6">
+      <section className="rounded-xl border border-ink/10 bg-white p-5 shadow-card sm:p-6">
         <h2 className="font-sans text-[15px] font-bold">État des services</h2>
-        <ul className="mt-3 divide-y divide-ink/5">
+        <ul className="mt-3 divide-y divide-ink/8">
           {services.map((s) => (
             <li key={s.name} className="flex items-start gap-3 py-3 text-sm">
               {s.ok ? (
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-forest" aria-label="Configuré" />
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-700" aria-label="Configuré" />
               ) : (
                 <XCircle className="mt-0.5 size-5 shrink-0 text-red-600" aria-label="Non configuré" />
               )}
@@ -62,7 +62,7 @@ async function Settings() {
           ))}
         </ul>
         {testAmount && (
-          <p className="mt-3 rounded-xl bg-[#FBF1DC] px-3 py-2 text-sm font-bold">
+          <p className="mt-3 rounded-xl bg-[#FFF3D6] px-3 py-2 text-sm font-bold">
             Mode test de paiement actif : tous les paiements sont facturés {testAmount} FCFA (SASPAY_TEST_AMOUNT_XOF). À retirer en production.
           </p>
         )}

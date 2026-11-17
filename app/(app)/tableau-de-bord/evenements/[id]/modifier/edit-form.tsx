@@ -25,8 +25,8 @@ export function EditForm({
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
-      <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-7">
-        <h2 className="mb-4 text-xl font-semibold">Texte</h2>
+      <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-card sm:p-7">
+        <h2 className="mb-4 text-xl font-bold">Texte</h2>
         <div className="grid gap-4">
           <Field id="title" label="Titre" error={err.title}>
             <Input id="title" name="title" defaultValue={event.title} maxLength={160} required />
@@ -43,8 +43,8 @@ export function EditForm({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-7">
-        <h2 className="mb-4 text-xl font-semibold">Informations pratiques</h2>
+      <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-card sm:p-7">
+        <h2 className="mb-4 text-xl font-bold">Informations pratiques</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field id="eventType" label="Type d'événement">
             <Select id="eventType" name="eventType" defaultValue={event.event_type}>

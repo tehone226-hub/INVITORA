@@ -1,4 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Invitora">
-  <rect width="64" height="64" rx="16" fill="#1F4D3A"/>
-  <text x="32" y="46" text-anchor="middle" font-family="Fraunces, Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" fill="#FAF5EC">I</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Invitora"><rect width="64" height="64" rx="18" fill="#6D3BF5"/><rect x="27" y="27" width="10" height="24" rx="5" fill="#fff"/><path d="M32 9l3.2 6.3 6.3 3.2-6.3 3.2L32 28l-3.2-6.3-6.3-3.2 6.3-3.2z" fill="#FFB020"/></svg>

@@ -62,13 +62,13 @@ export function LoginForm({ next }: { next: string }) {
             <KeyRound />
             Me connecter
           </SubmitButton>
-          <a href="/connexion" className="block text-center text-sm font-bold text-terracotta underline underline-offset-4">
+          <a href="/connexion" className="block text-center text-sm font-bold text-brand hover:text-brand-dark">
             Changer d&apos;adresse e-mail
           </a>
         </form>
       )}
 
-      <div className="flex items-center gap-3 text-xs font-bold tracking-wider text-ink/40 uppercase">
+      <div className="flex items-center gap-3 text-xs font-bold text-ink/45">
         <span className="h-px flex-1 bg-ink/10" />
         ou
         <span className="h-px flex-1 bg-ink/10" />

@@ -13,7 +13,7 @@ export function CopyLink({ url }: { url: string }) {
         value={url}
         aria-label="Lien de l'invitation"
         onFocus={(e) => e.currentTarget.select()}
-        className="h-11 min-w-0 flex-1 rounded-xl border border-ink/15 bg-cream px-3.5 text-sm text-ink"
+        className="h-11 min-w-0 flex-1 rounded-xl border border-ink/15 bg-paper px-3.5 text-sm text-ink"
       />
       <button
         type="button"

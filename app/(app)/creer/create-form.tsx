@@ -19,11 +19,11 @@ const TONES = [
 
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <fieldset className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-7">
+    <fieldset className="rounded-2xl border border-ink/10 bg-white p-5 shadow-card sm:p-7">
       <legend className="sr-only">{title}</legend>
       <div className="mb-5 flex items-center gap-3">
-        <span className="flex size-8 items-center justify-center rounded-full bg-forest font-heading text-sm font-bold text-cream">{n}</span>
-        <h2 className="text-xl font-semibold">{title}</h2>
+        <span className="flex size-8 items-center justify-center rounded-lg bg-brand font-heading text-sm font-bold text-white">{n}</span>
+        <h2 className="text-xl font-bold">{title}</h2>
       </div>
       {children}
     </fieldset>

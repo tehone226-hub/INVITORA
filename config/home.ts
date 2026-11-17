@@ -13,11 +13,11 @@ export const eventTypes: {
   /** Classe Tailwind de la pastille d'icône */
   tone: string;
 }[] = [
-  { title: "Mariages", subtitle: "Liens & RSVP élégants", icon: "heart", tone: "bg-terracotta text-cream" },
-  { title: "Anniversaires", subtitle: "Festif & coloré", icon: "cake", tone: "bg-gold text-ink" },
-  { title: "Baptêmes", subtitle: "Doux & lumineux", icon: "baby", tone: "bg-forest text-cream" },
-  { title: "Funérailles", subtitle: "Sobre & respectueux", icon: "flower", tone: "bg-[#7A3A22] text-cream" },
-  { title: "Entreprise", subtitle: "Pro & moderne", icon: "briefcase", tone: "bg-ink text-cream" },
+  { title: "Mariages", subtitle: "Liens & RSVP élégants", icon: "heart", tone: "bg-brand text-white" },
+  { title: "Anniversaires", subtitle: "Festif & coloré", icon: "cake", tone: "bg-sun text-night" },
+  { title: "Baptêmes", subtitle: "Doux & lumineux", icon: "baby", tone: "bg-[#0E8A66] text-white" },
+  { title: "Funérailles", subtitle: "Sobre & respectueux", icon: "flower", tone: "bg-night-soft text-white" },
+  { title: "Entreprise", subtitle: "Pro & moderne", icon: "briefcase", tone: "bg-night text-white" },
 ];
 
 export const steps: { title: string; text: string; icon: "layout" | "pen" | "send" }[] = [

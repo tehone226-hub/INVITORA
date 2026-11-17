@@ -73,7 +73,7 @@ export const THEMES = Object.fromEntries(
   STYLES.flatMap((style) =>
     COLORWAYS.map((cw) => {
       const id = `${style.id}--${cw.id}` as ThemeId;
-      const color = colors[id] ?? "#C0572B";
+      const color = colors[id] ?? "#6D3BF5";
       const theme: InvitationTheme = {
         id,
         styleId: style.id,

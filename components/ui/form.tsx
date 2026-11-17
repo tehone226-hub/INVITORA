@@ -6,7 +6,7 @@ import { buttonClass, type ButtonVariant } from "@/components/ui/button-class";
 import { cn } from "@/lib/utils";
 
 const fieldBase =
-  "w-full rounded-xl border border-ink/15 bg-white px-3.5 text-[15px] text-ink placeholder:text-ink/40 outline-none transition focus:border-terracotta focus:ring-3 focus:ring-terracotta/15 disabled:opacity-60 aria-invalid:border-red-600";
+  "w-full rounded-lg border border-ink/15 bg-white px-3.5 text-[15px] text-ink placeholder:text-ink/40 outline-none transition focus:border-brand focus:ring-3 focus:ring-brand/15 disabled:opacity-60 aria-invalid:border-red-600";
 
 export function Label({ htmlFor, children, hint }: { htmlFor: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -30,7 +30,7 @@ export function Select({ className, children, ...props }: React.ComponentProps<"
     <select className={cn(fieldBase, "h-11 appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-9", className)}
       style={{
         backgroundImage:
-          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23211915' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",
+          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2315122B' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")",
       }}
       {...props}
     >

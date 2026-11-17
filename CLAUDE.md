@@ -20,10 +20,11 @@ Le porteur du projet débute en programmation : explique simplement ce que tu fa
 - Hébergement : Vercel. Code : GitHub.
 
 ## Design (référence obligatoire)
-La maquette validée est `design/InvitoraAccueil.png`. Toute page reprend sa charte, décrite dans `BRAND.md`.
-- Terre cuite #C0572B (action principale), vert profond #1F4D3A, or #D9A441, crème #FAF5EC (fond), sable #F2E8D5, texte #211915.
-- Titres en serif élégant (proche de Fraunces), texte en sans-serif arrondie (proche de Nunito).
-- Cartes blanches très arrondies, ombres légères, boutons pleins arrondis.
+Depuis le 17 novembre 2026, le design est la charte « Nuit de fête », décrite dans `BRAND.md`. L'ancienne maquette `design/InvitoraAccueil.png` (crème et terre cuite) n'est plus la référence : ne pas la suivre.
+- Violet #6D3BF5 (action principale, `brand`), nuit #130F2A (blocs sombres, barre latérale, `night`), mangue #FFB020 (accent, `sun`), fond #F6F5FB (`paper`), fond doux #EBE8F7 (`mist`), texte #15122B (`ink`).
+- Titres en Bricolage Grotesque (gras), texte en Plus Jakarta Sans.
+- Cartes blanches à bordure fine (coins de 12 à 16 px), boutons à coins de 12 px, blocs sombres avec halo violet.
+- Espace connecté et administration : barre latérale sombre à gauche (`components/app/app-shell.tsx`). Pages publiques : en-tête et pied de page du site (`app/(site)/layout.tsx`).
 - Mobile d'abord : la plupart des visiteurs sont sur un Android d'entrée de gamme en 3G/4G. Page invité sous 500 Ko et affichée en moins de 3 s.
 
 ## Formules (paiement unique, active 3 mois, sans abonnement)
@@ -51,4 +52,4 @@ Les prix et limites vivent dans un seul fichier de configuration (`config/plans.
 - Si une information manque (clé, choix produit), pose la question au lieu d'inventer.
 
 ## Feuille de route
-1. Préparation (fait par le porteur)  2. Charte BRAND.md  3. Création du projet  4. Page d'accueil fidèle à la maquette  5. Base Neon et connexion  6. Création d'invitation (Claude + Gemini)  7. Page invité et partage WhatsApp  8. RSVP et tableau de bord  9. Paiement SasPay  10. Mise en ligne Vercel
+1. Préparation (fait par le porteur)  2. Charte BRAND.md  3. Création du projet  4. Page d'accueil  5. Base Neon et connexion  6. Création d'invitation (Claude + Gemini)  7. Page invité et partage WhatsApp  8. RSVP et tableau de bord  9. Paiement SasPay  10. Mise en ligne Vercel

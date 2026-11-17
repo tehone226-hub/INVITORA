@@ -4,25 +4,28 @@
 
 @theme inline {
   /* Polices de la charte (chargées dans app/layout.tsx) */
-  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-fraunces), Georgia, "Times New Roman", serif;
-  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-display), ui-sans-serif, system-ui, sans-serif;
 
-  /* Couleurs nommées de la charte : bg-terracotta, text-forest, bg-cream... */
-  --color-terracotta: var(--terracotta);
-  --color-terracotta-dark: var(--terracotta-dark);
-  --color-forest: var(--forest);
-  --color-forest-dark: var(--forest-dark);
-  --color-gold: var(--gold);
-  --color-gold-dark: var(--gold-dark);
-  --color-cream: var(--cream);
-  --color-sand: var(--sand);
+  /* Couleurs nommées de la charte : bg-brand, text-night, bg-paper... */
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-soft: var(--brand-soft);
+  --color-night: var(--night);
+  --color-night-dark: var(--night-dark);
+  --color-night-soft: var(--night-soft);
+  --color-sun: var(--sun);
+  --color-sun-dark: var(--sun-dark);
+  --color-paper: var(--paper);
+  --color-mist: var(--mist);
   --color-ink: var(--ink);
 
-  /* Ombres chaudes et légères */
-  --shadow-card: 0 2px 12px rgba(33, 25, 21, 0.06);
-  --shadow-card-hover: 0 10px 30px rgba(33, 25, 21, 0.12);
-  --shadow-float: 0 20px 50px rgba(33, 25, 21, 0.18);
+  /* Ombres froides et nettes */
+  --shadow-card: 0 1px 2px rgba(21, 18, 43, 0.05), 0 1px 1px rgba(21, 18, 43, 0.03);
+  --shadow-card-hover: 0 12px 28px -8px rgba(21, 18, 43, 0.18);
+  --shadow-float: 0 30px 60px -20px rgba(21, 18, 43, 0.45);
+  --shadow-glow: 0 10px 30px -8px rgba(109, 59, 245, 0.55);
 
   /* Couleurs shadcn/ui */
   --color-background: var(--background);
@@ -61,55 +64,57 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-3xl: calc(var(--radius) * 2.4);
+  --radius-4xl: calc(var(--radius) * 3);
 }
 
 :root {
-  /* Charte Invitora (voir BRAND.md) */
-  --terracotta: #c0572b;
-  --terracotta-dark: #a94a22;
-  --forest: #1f4d3a;
-  --forest-dark: #183d2e;
-  --gold: #d9a441;
-  --gold-dark: #c8932f;
-  --cream: #faf5ec;
-  --sand: #f2e8d5;
-  --ink: #211915;
+  /* Charte Invitora « Nuit de fête » (voir BRAND.md) */
+  --brand: #6d3bf5; /* violet : action principale */
+  --brand-dark: #5527d9;
+  --brand-soft: #efe9ff; /* fond violet très clair */
+  --night: #130f2a; /* nuit : blocs sombres, barre latérale */
+  --night-dark: #0b0820;
+  --night-soft: #221c45; /* cartes posées sur la nuit */
+  --sun: #ffb020; /* mangue : accent */
+  --sun-dark: #f09a00;
+  --paper: #f6f5fb; /* fond de page */
+  --mist: #ebe8f7; /* fond doux */
+  --ink: #15122b; /* texte */
 
   /* Variables shadcn/ui reliées à la charte */
-  --background: var(--cream);
+  --background: var(--paper);
   --foreground: var(--ink);
   --card: #ffffff;
   --card-foreground: var(--ink);
   --popover: #ffffff;
   --popover-foreground: var(--ink);
-  --primary: var(--terracotta);
-  --primary-foreground: var(--cream);
-  --secondary: var(--sand);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --secondary: var(--mist);
   --secondary-foreground: var(--ink);
-  --muted: var(--sand);
+  --muted: var(--mist);
   --muted-foreground: color-mix(in srgb, var(--ink) 60%, transparent);
-  --accent: var(--sand);
+  --accent: var(--mist);
   --accent-foreground: var(--ink);
-  --destructive: #b3261e;
+  --destructive: #d92d20;
   --border: color-mix(in srgb, var(--ink) 10%, transparent);
   --input: color-mix(in srgb, var(--ink) 15%, transparent);
-  --ring: var(--terracotta);
-  --chart-1: var(--terracotta);
-  --chart-2: var(--forest);
-  --chart-3: var(--gold);
-  --chart-4: var(--sand);
+  --ring: var(--brand);
+  --chart-1: var(--brand);
+  --chart-2: #12a37a;
+  --chart-3: var(--sun);
+  --chart-4: var(--mist);
   --chart-5: var(--ink);
-  --radius: 1rem;
-  --sidebar: var(--cream);
-  --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--terracotta);
-  --sidebar-primary-foreground: var(--cream);
-  --sidebar-accent: var(--sand);
-  --sidebar-accent-foreground: var(--ink);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--terracotta);
+  --radius: 0.75rem;
+  --sidebar: var(--night);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--night-soft);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: color-mix(in srgb, #ffffff 10%, transparent);
+  --sidebar-ring: var(--brand);
 }
 
 @layer base {
@@ -126,6 +131,29 @@
   h2,
   h3,
   h4 {
-    @apply font-heading;
+    @apply font-heading tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Halo de couleur des blocs « nuit » (hero, bandeau final, connexion) */
+  .bg-night-glow {
+    background-color: var(--night);
+    background-image:
+      radial-gradient(60% 55% at 12% 0%, rgba(109, 59, 245, 0.55), transparent 70%),
+      radial-gradient(45% 45% at 95% 15%, rgba(255, 176, 32, 0.22), transparent 70%),
+      radial-gradient(50% 60% at 70% 110%, rgba(109, 59, 245, 0.35), transparent 70%);
+  }
+  /* Trame de points discrète, posée sur la nuit */
+  .bg-dots {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  /* Dégradé de la marque (texte ou fond) */
+  .text-gradient {
+    background-image: linear-gradient(90deg, #b79bff, #ffb020);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }

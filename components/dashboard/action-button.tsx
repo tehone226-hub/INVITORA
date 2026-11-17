@@ -28,7 +28,7 @@ export function ActionButton({
   const router = useRouter();
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("flex flex-col items-start gap-2", className)}>
       <button
         type="button"
         disabled={pending}
@@ -52,7 +52,7 @@ export function ActionButton({
         )}
       </button>
       {result?.message && (
-        <p role="status" className={cn("text-sm font-semibold", result.ok ? "text-forest" : "text-red-700")}>
+        <p role="status" className={cn("text-sm font-semibold", result.ok ? "text-emerald-700" : "text-red-700")}>
           {result.message}
         </p>
       )}

@@ -52,7 +52,7 @@ export default function HelpPage() {
           <p className="mt-1.5">{item.a}</p>
         </div>
       ))}
-      <div className="rounded-2xl bg-sand/60 p-5">
+      <div className="rounded-xl border border-brand/20 bg-brand-soft p-5">
         <h2>Besoin d&apos;aide ?</h2>
         <p className="mt-1.5">
           Le support WhatsApp arrive bientôt. En attendant, connectez-vous à votre espace : chaque étape y est expliquée.

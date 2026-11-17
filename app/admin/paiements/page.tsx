@@ -38,16 +38,16 @@ async function Payments({ searchParams }: { searchParams: PageProps<"/admin/paie
 
   return (
     <div className="space-y-5">
-      <h1 className="text-[30px] leading-tight font-semibold">Paiements</h1>
+      <h1 className="text-[28px] leading-tight font-extrabold sm:text-[32px]">Paiements</h1>
       <Notice tone="info">
         Les formules s&apos;activent automatiquement par le webhook SasPay signé. « Activer » ne sert qu&apos;en cas de webhook perdu :
         l&apos;activation n&apos;a lieu que si l&apos;API SasPay confirme le paiement.
       </Notice>
       {!features.payments && <Notice tone="warning">SasPay n&apos;est pas configuré (clés absentes).</Notice>}
-      <FilterBar basePath="/admin/paiements" status={status} statuses={STATUSES} placeholder="—" />
-      <div className="overflow-x-auto rounded-2xl border border-ink/5 bg-white shadow-card">
+      <FilterBar basePath="/admin/paiements" status={status} statuses={STATUSES} search={false} />
+      <div className="overflow-x-auto rounded-xl border border-ink/10 bg-white shadow-card">
         <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b border-ink/10 text-xs text-ink/55 uppercase">
+          <thead className="border-b border-ink/10 bg-paper text-[11px] tracking-wider text-ink/55 uppercase">
             <tr>
               <th className="px-4 py-3 font-bold">Date</th>
               <th className="px-4 py-3 font-bold">Client · invitation</th>
@@ -59,7 +59,7 @@ async function Payments({ searchParams }: { searchParams: PageProps<"/admin/paie
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink/5">
+          <tbody className="divide-y divide-ink/8">
             {payments.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-ink/55">
@@ -85,7 +85,7 @@ async function Payments({ searchParams }: { searchParams: PageProps<"/admin/paie
                       <ActionButton action={adminRefreshPayment.bind(null, p.id)}>Vérifier</ActionButton>
                       <ActionButton
                         action={adminActivatePayment.bind(null, p.id)}
-                        variant="forest"
+                        variant="dark"
                         confirm="Activer la formule si SasPay confirme le paiement ?"
                       >
                         Activer

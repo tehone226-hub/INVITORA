@@ -21,13 +21,13 @@ async function AiUsage() {
   const rows = await listAiUsage();
   return (
     <div className="space-y-5">
-      <h1 className="text-[30px] leading-tight font-semibold">Usage de l&apos;IA</h1>
+      <h1 className="text-[28px] leading-tight font-extrabold sm:text-[32px]">Usage de l&apos;IA</h1>
       <p className="text-sm text-ink/60">
         100 derniers appels à Gemini (textes). Limite : 15 textes par utilisateur et par jour. Les fonds d&apos;invitation ne sont plus générés par IA.
       </p>
-      <div className="overflow-x-auto rounded-2xl border border-ink/5 bg-white shadow-card">
+      <div className="overflow-x-auto rounded-xl border border-ink/10 bg-white shadow-card">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="border-b border-ink/10 text-xs text-ink/55 uppercase">
+          <thead className="border-b border-ink/10 bg-paper text-[11px] tracking-wider text-ink/55 uppercase">
             <tr>
               <th className="px-4 py-3 font-bold">Date</th>
               <th className="px-4 py-3 font-bold">Type</th>
@@ -36,7 +36,7 @@ async function AiUsage() {
               <th className="px-4 py-3 font-bold">Résultat</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink/5">
+          <tbody className="divide-y divide-ink/8">
             {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-ink/55">

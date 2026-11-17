@@ -4,28 +4,31 @@ interface SectionHeadingProps {
   eyebrow: string;
   title: string;
   subtitle?: string;
+  /** Par défaut à gauche (charte « Nuit de fête ») */
   align?: "left" | "center";
-  /** `dark` : sur fond vert */
+  /** `dark` : sur fond nuit */
   tone?: "light" | "dark";
   id?: string;
   className?: string;
 }
 
+/** Titre de section : petite puce violette, grand titre, sous-titre. */
 export function SectionHeading({
   eyebrow,
   title,
   subtitle,
-  align = "center",
+  align = "left",
   tone = "light",
   id,
   className,
 }: SectionHeadingProps) {
+  const dark = tone === "dark";
   return (
-    <div className={cn(align === "center" && "mx-auto max-w-2xl text-center", className)}>
+    <div className={cn("max-w-2xl", align === "center" && "mx-auto text-center", className)}>
       <p
         className={cn(
-          "text-xs font-bold tracking-[0.12em] uppercase",
-          tone === "dark" ? "text-gold" : "text-terracotta",
+          "inline-flex rounded-md px-2.5 py-1 text-xs font-bold",
+          dark ? "bg-white/10 text-sun" : "bg-brand-soft text-brand",
         )}
       >
         {eyebrow}
@@ -33,21 +36,14 @@ export function SectionHeading({
       <h2
         id={id}
         className={cn(
-          "mt-2 text-[28px] leading-tight font-semibold text-balance sm:text-4xl",
-          tone === "dark" ? "text-cream" : "text-ink",
+          "mt-4 text-[30px] leading-[1.1] font-extrabold text-balance sm:text-[40px]",
+          dark ? "text-white" : "text-ink",
         )}
       >
         {title}
       </h2>
       {subtitle && (
-        <p
-          className={cn(
-            "mx-auto mt-3 max-w-xl text-[15px] leading-relaxed",
-            tone === "dark" ? "text-cream/80" : "text-ink/60",
-          )}
-        >
-          {subtitle}
-        </p>
+        <p className={cn("mt-4 text-base leading-relaxed", dark ? "text-white/70" : "text-ink/60")}>{subtitle}</p>
       )}
     </div>
   );

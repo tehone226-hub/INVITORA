@@ -9,9 +9,9 @@ import { updateSettings } from "../actions";
 export function SettingsForm({ showSampleContent, maintenanceMessage }: { showSampleContent: boolean; maintenanceMessage: string }) {
   const [state, action] = useActionState<ActionState, FormData>(updateSettings, null);
   return (
-    <form action={action} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-5 shadow-card sm:p-6">
+    <form action={action} className="space-y-5 rounded-xl border border-ink/10 bg-white p-5 shadow-card sm:p-6">
       <label className="flex cursor-pointer items-start gap-3">
-        <input type="checkbox" name="show_sample_content" defaultChecked={showSampleContent} className="mt-1 size-5 accent-terracotta" />
+        <input type="checkbox" name="show_sample_content" defaultChecked={showSampleContent} className="mt-1 size-5 accent-brand" />
         <span>
           <span className="block font-bold">Afficher les contenus d&apos;exemple sur l&apos;accueil</span>
           <span className="text-sm text-ink/60">

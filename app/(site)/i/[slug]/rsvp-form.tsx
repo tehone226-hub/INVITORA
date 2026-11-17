@@ -33,8 +33,8 @@ export function RsvpForm({ slug, deadline, demo = false }: { slug: string; deadl
   }
 
   return (
-    <form action={action} className="rounded-[28px] border border-ink/5 bg-white p-5 shadow-card sm:p-7" noValidate>
-      <h2 className="text-center font-heading text-2xl font-semibold">Confirmez votre présence</h2>
+    <form action={action} className="rounded-2xl border border-ink/8 bg-white p-5 shadow-card sm:p-7" noValidate>
+      <h2 className="text-center font-heading text-2xl font-extrabold">Confirmez votre présence</h2>
       {deadline && <p className="mt-1 text-center text-sm text-ink/55">Merci de répondre avant le {deadline}.</p>}
 
       <input type="hidden" name="slug" value={slug} />
@@ -51,8 +51,8 @@ export function RsvpForm({ slug, deadline, demo = false }: { slug: string; deadl
             aria-checked={response === c.id}
             onClick={() => setResponse(c.id)}
             className={cn(
-              "h-12 rounded-2xl border text-[15px] font-bold transition-colors",
-              response === c.id ? "border-forest bg-forest text-cream" : "border-ink/12 bg-white text-ink hover:bg-sand",
+              "h-12 rounded-xl border text-[15px] font-bold transition-colors",
+              response === c.id ? "border-brand bg-brand text-white" : "border-ink/12 bg-white text-ink hover:border-brand/40 hover:bg-brand-soft",
             )}
           >
             {c.label}
@@ -80,7 +80,7 @@ export function RsvpForm({ slug, deadline, demo = false }: { slug: string; deadl
 
       {state?.message && !state.ok && <Notice tone="error" className="mt-4">{state.message}</Notice>}
 
-      <SubmitButton variant="forest" className="mt-5 h-12 w-full" pendingLabel="Envoi…">
+      <SubmitButton className="mt-5 h-12 w-full" pendingLabel="Envoi…">
         <Send />
         Envoyer ma réponse
       </SubmitButton>

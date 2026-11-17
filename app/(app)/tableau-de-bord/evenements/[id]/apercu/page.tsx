@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Aperçu", robots: { index: false } }
 export default function PreviewPage(props: PageProps<"/tableau-de-bord/evenements/[id]/apercu">) {
   return (
     <section className="w-full px-4 py-8">
-      <Suspense fallback={<div className="mx-auto aspect-[3/4] w-full max-w-md animate-pulse rounded-[28px] bg-sand/70" />}>
+      <Suspense fallback={<div className="mx-auto aspect-[3/4] w-full max-w-md animate-pulse rounded-2xl bg-mist/70" />}>
         <Preview params={props.params} />
       </Suspense>
     </section>
@@ -25,7 +25,7 @@ async function Preview({ params }: { params: PageProps<"/tableau-de-bord/eveneme
   const event = await getMyEvent(id);
   return (
     <div className="mx-auto max-w-md">
-      <Link href={`/tableau-de-bord/evenements/${id}`} className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-ink/60 hover:text-terracotta">
+      <Link href={`/tableau-de-bord/evenements/${id}`} className="mb-4 inline-flex items-center gap-1.5 text-sm font-bold text-ink/60 hover:text-brand">
         <ArrowLeft className="size-4" aria-hidden="true" />
         Retour
       </Link>
@@ -35,7 +35,7 @@ async function Preview({ params }: { params: PageProps<"/tableau-de-bord/eveneme
         </Notice>
       )}
       <InvitationView event={event}>
-        <div className="rounded-[28px] border border-dashed border-ink/15 bg-white p-6 text-center text-sm text-ink/55">
+        <div className="rounded-2xl border border-dashed border-ink/15 bg-white p-6 text-center text-sm text-ink/55">
           Ici, vos invités confirmeront leur présence.
         </div>
       </InvitationView>

@@ -32,12 +32,12 @@ export const metadata: Metadata = { title: "Mon invitation", robots: { index: fa
 
 export default function EventPage(props: PageProps<"/tableau-de-bord/evenements/[id]">) {
   return (
-    <section className="mx-auto w-full max-w-[1180px] px-5 py-8 sm:py-10">
-      <Link href="/tableau-de-bord" className="inline-flex items-center gap-1.5 text-sm font-bold text-ink/60 hover:text-terracotta">
+    <section className="mx-auto w-full max-w-[1240px] px-5 py-8 lg:px-8 lg:py-10">
+      <Link href="/tableau-de-bord" className="inline-flex items-center gap-1.5 text-sm font-bold text-ink/60 hover:text-brand">
         <ArrowLeft className="size-4" aria-hidden="true" />
         Mes invitations
       </Link>
-      <Suspense fallback={<div className="mt-6 h-[600px] animate-pulse rounded-3xl bg-sand/60" />}>
+      <Suspense fallback={<div className="mt-6 h-[600px] animate-pulse rounded-2xl bg-mist/60" />}>
         <EventDashboard {...props} />
       </Suspense>
     </section>
@@ -76,7 +76,7 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
             <StatusBadge event={event} />
             <PlanBadge event={event} />
           </div>
-          <h1 className="mt-2 text-[28px] leading-tight font-semibold text-balance sm:text-[34px]">{event.title}</h1>
+          <h1 className="mt-2 text-[28px] leading-tight font-extrabold text-balance sm:text-[34px]">{event.title}</h1>
           <p className="mt-1 text-[15px] text-ink/60">
             {eventTypeLabel(event.event_type)}
             {event.starts_at && ` · ${formatDate(event.starts_at)}`}
@@ -99,7 +99,7 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
         {/* Carte + IA image */}
         <div className="space-y-4">
           <div
-            className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-3xl p-6 shadow-card"
+            className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-2xl p-6 shadow-card"
             style={{ backgroundColor: theme.color }}
           >
             <Image
@@ -123,7 +123,7 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
 
           <p className="text-center text-sm text-ink/60">
             Fond : <span className="font-bold text-ink">{theme.name}</span>.{" "}
-            <Link href={`/tableau-de-bord/evenements/${id}/modifier`} className="font-bold text-terracotta underline underline-offset-4">
+            <Link href={`/tableau-de-bord/evenements/${id}/modifier`} className="font-bold text-brand underline underline-offset-4">
               Changer de fond
             </Link>
           </p>
@@ -131,8 +131,8 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
 
         {/* Étapes */}
         <div className="space-y-6">
-          <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-6">
-            <h2 className="text-xl font-semibold">Mise en ligne</h2>
+          <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-card sm:p-6">
+            <h2 className="text-xl font-bold">Mise en ligne</h2>
             <ol className="mt-4 space-y-5">
               <StepItem n={1} done title="Texte de l'invitation">
                 <p className="line-clamp-3 text-sm text-ink/65">{event.message || "Aucun message pour l'instant."}</p>
@@ -201,7 +201,7 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
                     </p>
                     {active && (
                       <div className="mt-3">
-                        <ActionButton action={publishEvent.bind(null, id)} variant="forest">
+                        <ActionButton action={publishEvent.bind(null, id)} variant="dark">
                           Publier l&apos;invitation
                         </ActionButton>
                       </div>
@@ -214,7 +214,7 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
                 {online ? (
                   <div className="space-y-3">
                     <CopyLink url={url} />
-                    <a href={whatsappShareUrl(shareText)} target="_blank" rel="noopener noreferrer" className={buttonClass("forest", "w-full sm:w-auto")}>
+                    <a href={whatsappShareUrl(shareText)} target="_blank" rel="noopener noreferrer" className={buttonClass("dark", "w-full sm:w-auto")}>
                       <MessageCircle />
                       Partager sur WhatsApp
                     </a>
@@ -227,9 +227,9 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
           </div>
 
           {/* Réponses */}
-          <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-6">
+          <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-card sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold">Réponses des invités</h2>
+              <h2 className="text-xl font-bold">Réponses des invités</h2>
               {rsvps.length > 0 && (
                 <a href={`/tableau-de-bord/evenements/${id}/export`} className={buttonClass("outline", "h-9 px-4 text-sm")}>
                   <Download />
@@ -251,9 +251,9 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
           </div>
 
           {payments.length > 0 && (
-            <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card sm:p-6">
-              <h2 className="text-lg font-semibold">Paiements</h2>
-              <ul className="mt-3 divide-y divide-ink/5 text-sm">
+            <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-card sm:p-6">
+              <h2 className="text-lg font-bold">Paiements</h2>
+              <ul className="mt-3 divide-y divide-ink/8 text-sm">
                 {payments.map((p) => (
                   <li key={p.id} className="flex flex-wrap justify-between gap-2 py-2.5">
                     <span>
@@ -288,7 +288,7 @@ function StepItem({ n, done, title, children }: { n: number; done?: boolean; tit
   return (
     <li className="flex gap-4">
       <span
-        className={`flex size-8 shrink-0 items-center justify-center rounded-full font-heading text-sm font-bold ${done ? "bg-forest text-cream" : "border-2 border-ink/15 text-ink/50"}`}
+        className={`flex size-8 shrink-0 items-center justify-center rounded-lg font-heading text-sm font-bold ${done ? "bg-emerald-500 text-white" : "border border-ink/15 bg-paper text-ink/50"}`}
         aria-hidden="true"
       >
         {done ? "✓" : n}
