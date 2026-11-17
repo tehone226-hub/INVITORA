@@ -1,14 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { THEMES, type ThemeId } from "@/config/themes";
+import { DEFAULT_THEME, type ThemeId } from "@/config/themes";
+import { ThemePicker } from "@/components/theme-picker";
 import { Field, Input, Select, SubmitButton, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/notice";
 import { EVENT_TYPES, LANGUAGES } from "@/lib/event-types";
 import type { ActionState, EventType } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import { createInvitation } from "./actions";
 
 const TONES = [
@@ -34,7 +33,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 export function CreateForm({ aiEnabled }: { aiEnabled: boolean }) {
   const [state, action] = useActionState<ActionState, FormData>(createInvitation, null);
   const [eventType, setEventType] = useState<EventType>("mariage");
-  const [theme, setTheme] = useState<ThemeId>("faso-dan-fani");
+  const [theme, setTheme] = useState<ThemeId>(DEFAULT_THEME);
   const err = state?.fieldErrors ?? {};
 
   const onTypeChange = (value: EventType) => {
@@ -96,28 +95,7 @@ export function CreateForm({ aiEnabled }: { aiEnabled: boolean }) {
       </Step>
 
       <Step n={3} title="Le style">
-        <p className="mb-3 text-sm font-bold">Étoffe de l&apos;invitation</p>
-        <input type="hidden" name="theme" value={theme} />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="radiogroup" aria-label="Étoffe de l'invitation">
-          {Object.values(THEMES).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="radio"
-              aria-checked={theme === t.id}
-              onClick={() => setTheme(t.id)}
-              className={cn(
-                "group relative aspect-[4/5] overflow-hidden rounded-2xl text-left ring-offset-2 ring-offset-white transition",
-                theme === t.id ? "ring-3 ring-terracotta" : "ring-1 ring-ink/10 hover:ring-ink/30",
-              )}
-            >
-              <Image src={t.image} alt="" fill sizes="(min-width: 640px) 160px, 45vw" className="object-cover" />
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/85 to-transparent px-3 pt-8 pb-2.5 text-sm font-bold text-cream">
-                {t.name}
-              </span>
-            </button>
-          ))}
-        </div>
+        <ThemePicker value={theme} onChange={setTheme} />
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Field id="language" label="Langue du texte">

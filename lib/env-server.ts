@@ -9,18 +9,14 @@ export const serverEnv = {
   dataApiUrl: (process.env.NEON_DATA_API_URL ?? "").replace(/\/$/, ""),
   neonAuthBaseUrl: process.env.NEON_AUTH_BASE_URL ?? "",
   neonAuthCookieSecret: process.env.NEON_AUTH_COOKIE_SECRET ?? "",
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
-  blobToken: process.env.BLOB_READ_WRITE_TOKEN ?? "",
   saspaySecretKey: process.env.SASPAY_SECRET_KEY ?? "",
   saspayWebhookSecret: process.env.SASPAY_WEBHOOK_SECRET ?? "",
 };
 
 export const features = {
-  /** Textes rédigés par Claude (sinon : modèles de textes intégrés) */
-  aiText: Boolean(serverEnv.anthropicApiKey),
-  /** Fonds générés par Gemini et enregistrés sur Vercel Blob (sinon : fonds de secours du thème) */
-  aiImage: Boolean(serverEnv.geminiApiKey && serverEnv.blobToken),
+  /** Textes rédigés par Gemini (sinon : modèles de textes intégrés) */
+  aiText: Boolean(serverEnv.geminiApiKey),
   /** Paiement SasPay */
   payments: Boolean(serverEnv.saspaySecretKey && serverEnv.saspayWebhookSecret),
   /** Connexion SQL directe côté serveur (webhook, activation de formule, compteurs, administration) */

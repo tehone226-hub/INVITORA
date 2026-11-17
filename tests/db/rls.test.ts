@@ -3,7 +3,7 @@
  * sur un vrai PostgreSQL local (PGlite), avec une simulation minimale de
  * l'environnement Neon (rôle authenticated de l'API de données, auth.uid() lu dans le JWT).
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -70,11 +70,11 @@ async function activate(eventId: string, guestLimit: number | null) {
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(NEON_STUB);
-  const migration = readFileSync(
-    path.join(process.cwd(), "db/migrations/20261116000000_init.sql"),
-    "utf8",
-  );
-  await db.exec(migration);
+  // Toutes les migrations, dans l'ordre (comme npm run db:migrate)
+  const dir = path.join(process.cwd(), "db/migrations");
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
+    await db.exec(readFileSync(path.join(dir, file), "utf8"));
+  }
   await db.exec("grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;");
   await db.exec(`
     insert into public.profiles (id, email, full_name, role) values
@@ -147,6 +147,27 @@ describe("événements : cloisonnement", () => {
     await expect(as(A, `update public.events set program = '"texte"'::jsonb where id = $1`, [id])).rejects.toThrow();
     await expect(as(A, "update public.events set cover_image_url = 'http://tracker.exemple/p.gif' where id = $1", [id])).rejects.toThrow();
     await as(A, "update public.events set maps_url = 'https://maps.app.goo.gl/abc' where id = $1", [id]);
+  });
+});
+
+describe("fonds d'invitation (100)", () => {
+  it("fond par défaut à la création", async () => {
+    const id = await createEvent(A, "fond-defaut-aaaa-0060");
+    const rows = await as<{ theme: string }>(A, "select theme from public.events where id = $1", [id]);
+    expect(rows[0].theme).toBe("faso-dan-fani--origine");
+  });
+
+  it("accepte un fond « style--coloris »", async () => {
+    const id = await createEvent(A, "fond-wax-aaaa-0061");
+    await as(A, "update public.events set theme = 'wax--braise' where id = $1", [id]);
+    expect((await as<{ theme: string }>(A, "select theme from public.events where id = $1", [id]))[0].theme).toBe("wax--braise");
+  });
+
+  it("refuse un format de fond invalide ou trop long", async () => {
+    const id = await createEvent(A, "fond-mauvais-aaaa-0062");
+    for (const bad of ["wax", "wax--", "WAX--braise", "wax--bra ise", "wax--braise'; drop table events;--", "a--b--c", "x".repeat(41) + "--y"]) {
+      await expect(as(A, "update public.events set theme = $2 where id = $1", [id, bad]), bad).rejects.toThrow();
+    }
   });
 });
 

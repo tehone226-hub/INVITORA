@@ -4,25 +4,21 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { PLANS, type PlanId } from "@/config/plans";
-import type { ThemeId } from "@/config/themes";
-import { MAX_IMAGE_GENERATIONS, generateBackground } from "@/lib/ai/invitation-image";
+import { isThemeId } from "@/config/themes";
 import { generateInvitationText } from "@/lib/ai/invitation-text";
 import { getCurrentUser } from "@/lib/auth";
 import { SESSION_LIFETIME_HOURS, refreshPaymentStatus } from "@/lib/billing";
 import { publicEnv } from "@/lib/env";
-import { features, serverEnv } from "@/lib/env-server";
-import { eventTypeLabel, isEventType, isLanguage } from "@/lib/event-types";
+import { features } from "@/lib/env-server";
+import { isEventType, isLanguage } from "@/lib/event-types";
 import { EVENT_COLUMNS, eventTag, isPlanActive, planOf } from "@/lib/events";
 import { toIsoFromLocal } from "@/lib/format";
 import { SaspayError, createCheckoutSession, saspayAmount } from "@/lib/saspay";
-import { put } from "@vercel/blob";
 import { db, rows } from "@/lib/neon/sql";
 import { createClient } from "@/lib/neon/data";
 import type { ActionState, EventRow, RsvpRow } from "@/lib/types";
 
-const THEMES: ThemeId[] = ["faso-dan-fani", "bogolan", "tiebele", "indigo"];
-/** Nombre maximal d'images IA par utilisateur et par jour (maîtrise des coûts). */
-const DAILY_IMAGE_LIMIT = 6;
+
 
 /** Événement accessible à l'utilisateur connecté (RLS : propriétaire ou admin). */
 async function loadEvent(id: string) {
@@ -65,7 +61,7 @@ const EditSchema = z.object({
   rsvp_deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")),
   contact_phone: z.string().trim().max(30).regex(/^[+\d\s().-]*$/, "Numéro invalide."),
   language: z.string().refine(isLanguage),
-  theme: z.string().refine((v) => THEMES.includes(v as ThemeId)),
+  theme: z.string().refine(isThemeId, "Choisissez un fond de la liste."),
 });
 
 /** « 16 h 00 — Accueil » par ligne → [{time, label}] */
@@ -188,66 +184,6 @@ export async function regenerateText(id: string): Promise<ActionState> {
   }
   refresh(e);
   return { ok: true, message: "Nouveau texte rédigé. Relisez-le et modifiez-le si besoin." };
-}
-
-export async function generateCover(id: string): Promise<ActionState> {
-  const ctx = await loadEvent(id);
-  if (!ctx) return { ok: false, message: "Invitation introuvable." };
-  if (!features.aiImage) return { ok: false, message: "La génération d'images n'est pas encore activée sur ce site." };
-  const e = ctx.event;
-  if (e.image_generations >= MAX_IMAGE_GENERATIONS) {
-    return { ok: false, message: `Vous avez utilisé les ${MAX_IMAGE_GENERATIONS} créations d'image de cette invitation.` };
-  }
-
-  const sql = db();
-  // Plafond quotidien par utilisateur (maîtrise des coûts Gemini)
-  const used = await rows<{ n: number }>(
-    sql`select count(*)::int as n from public.ai_usage
-        where user_id = ${ctx.user.id} and kind = 'image' and created_at > now() - interval '24 hours'`,
-  );
-  if ((used[0]?.n ?? 0) >= DAILY_IMAGE_LIMIT) {
-    return { ok: false, message: `Vous avez atteint la limite de ${DAILY_IMAGE_LIMIT} créations d'image par jour. Réessayez demain.` };
-  }
-  // On réserve la génération AVANT l'appel (évite de dépasser la limite en cliquant plusieurs fois).
-  const reserved = await rows<{ id: string }>(
-    sql`update public.events set image_generations = image_generations + 1
-        where id = ${id} and image_generations = ${e.image_generations} returning id`,
-  );
-  if (!reserved.length) return { ok: false, message: "Une création d'image est déjà en cours. Patientez un instant." };
-
-  const image = await generateBackground(e.theme, eventTypeLabel(e.event_type), isPlanActive(e));
-  await sql`insert into public.ai_usage (user_id, event_id, kind, model, ok)
-           values (${ctx.user.id}, ${id}, 'image', ${image?.model ?? "aucune"}, ${Boolean(image)})`;
-
-  if (!image) {
-    // Une tentative qui échoue ne consomme pas l'une des 3 créations de l'invitation.
-    await sql`update public.events set image_generations = greatest(image_generations - 1, 0) where id = ${id}`;
-    return { ok: false, message: "L'image n'a pas pu être créée. Le fond de l'étoffe choisie reste utilisé. Réessayez plus tard." };
-  }
-
-  const ext = image.mimeType.includes("jpeg") ? "jpg" : image.mimeType.includes("webp") ? "webp" : "png";
-  try {
-    const blob = await put(`invitations/${e.owner_id}/${e.id}.${ext}`, image.bytes, {
-      access: "public",
-      contentType: image.mimeType,
-      addRandomSuffix: true,
-      token: serverEnv.blobToken,
-    });
-    await sql`update public.events set cover_image_url = ${blob.url} where id = ${id}`;
-  } catch (error) {
-    console.error("[image] stockage", error instanceof Error ? error.message : error);
-    return { ok: false, message: "L'image a été créée mais n'a pas pu être enregistrée. Réessayez." };
-  }
-  refresh(e);
-  return { ok: true, message: "Nouveau fond créé par l'IA." };
-}
-
-export async function resetCover(id: string): Promise<ActionState> {
-  const ctx = await loadEvent(id);
-  if (!ctx) return { ok: false, message: "Invitation introuvable." };
-  await ctx.supabase.from("events").update({ cover_image_url: null }).eq("id", id);
-  refresh(ctx.event);
-  return { ok: true, message: "Le fond de l'étoffe est rétabli." };
 }
 
 /* ------------------------------------------------------------------ */

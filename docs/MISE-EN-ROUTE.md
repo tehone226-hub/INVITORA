@@ -7,13 +7,13 @@
 | Base de données Neon `invitora` (Francfort) | ✅ créée, schéma appliqué, sécurité par ligne active |
 | Connexion Neon Auth (code par e-mail + Google) | ✅ active |
 | Site en ligne sur Vercel | ✅ https://invitora-theta.vercel.app |
-| Stockage des images IA (Vercel Blob `invitora-images`) | ✅ créé et connecté |
-| Textes par l'IA (Claude) | ⏳ clé `ANTHROPIC_API_KEY` à ajouter (sinon textes types) |
-| Images par l'IA (Gemini) | ⏳ clé `GEMINI_API_KEY` à ajouter |
+| 100 fonds d'invitation (10 styles × 10 coloris) | ✅ dessinés par nous, dans le site |
+| Textes par l'IA (Gemini) | ✅ clé en place, modèle `gemini-3.5-flash-lite` |
+| Images par l'IA | ⛔ abandonnées : on choisit parmi les 100 fonds |
 | Paiement SasPay | ⏳ clés à ajouter (voir `docs/saspay.md`) |
 | Envoi des e-mails de connexion | ⚠️ expéditeur partagé de Neon : à remplacer avant l'ouverture au public |
 
-Le site fonctionne déjà sans les clés « à ajouter » : textes types, fonds d'étoffe, pas de paiement.
+Le site fonctionne sans les clés « à ajouter » : textes types si Gemini est indisponible, pas de paiement.
 
 ---
 
@@ -37,12 +37,8 @@ Collez la valeur quand elle est demandée, puis redéployez : `npx vercel@latest
 | `NEON_AUTH_COOKIE_SECRET` | Signature des sessions (secret, ≥ 32 caractères) | `openssl rand -base64 32` |
 | `NEXT_PUBLIC_SITE_URL` | Adresse publique du site | `https://invitora-theta.vercel.app` |
 | `ADMIN_EMAILS` | E-mails administrateurs | vous |
-| `ANTHROPIC_API_KEY` | Textes Claude | console.anthropic.com → API Keys |
-| `GEMINI_API_KEY` | Images Gemini | aistudio.google.com/apikey |
-| `BLOB_READ_WRITE_TOKEN` | Stockage des images | automatique (store `invitora-images`) |
+| `GEMINI_API_KEY` | Textes Gemini | aistudio.google.com/apikey |
 | `SASPAY_SECRET_KEY`, `SASPAY_WEBHOOK_SECRET` | Paiement | tableau de bord SasPay |
-
-> Les images IA ne s'activent que si **les deux** variables `GEMINI_API_KEY` et `BLOB_READ_WRITE_TOKEN` sont présentes.
 
 ---
 
@@ -68,13 +64,11 @@ Il lit `DATABASE_URL` dans `.env.local` et n'applique chaque fichier qu'une seul
 
 ---
 
-## 4. Images par l'IA (Gemini)
+## 4. Textes par l'IA (Gemini) et fonds d'invitation
 
-1. Créez une clé sur https://aistudio.google.com/apikey.
-2. Ajoutez-la dans `.env.local` (`GEMINI_API_KEY=...`) **et** en production (voir section 1).
-3. Redéployez.
-
-Les images ne contiennent jamais de texte : prénoms et dates sont posés par-dessus (règle 2). Limites : 3 créations par invitation et 6 par utilisateur et par jour. Le modèle `gemini-3.1-flash-lite-image` sert pour les aperçus gratuits et `gemini-nano-banana-2.1` une fois la formule payée.
+- **Textes** : Gemini rédige le titre, le message et le programme (`gemini-3.5-flash-lite`, puis `gemini-3.1-flash-lite` en secours, puis des textes types). Limite : 15 textes par utilisateur et par jour. La clé est dans `GEMINI_API_KEY` (locale et production).
+- **Fonds** : 100 fonds prêts (10 styles × 10 coloris), sans texte. Pour en refaire ou en ajouter : modifiez `scripts/art-styles-*.mjs` puis `npm run art`. Aucune clé n'est nécessaire.
+- Il n'y a plus de génération d'images par IA. L'espace Vercel Blob `invitora-images` créé plus tôt n'est plus utilisé : vous pouvez le supprimer (Vercel → Storage).
 
 ---
 

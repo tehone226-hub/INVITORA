@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AdminSkeleton, Pill } from "@/components/admin/ui";
-import { MAX_IMAGE_GENERATIONS } from "@/lib/ai/invitation-image";
 import { listAiUsage } from "@/lib/admin";
 import { requireAdmin } from "@/lib/auth";
 
@@ -24,7 +23,7 @@ async function AiUsage() {
     <div className="space-y-5">
       <h1 className="text-[30px] leading-tight font-semibold">Usage de l&apos;IA</h1>
       <p className="text-sm text-ink/60">
-        100 derniers appels. Limites : 15 textes par utilisateur et par jour, {MAX_IMAGE_GENERATIONS} images par invitation.
+        100 derniers appels à Gemini (textes). Limite : 15 textes par utilisateur et par jour. Les fonds d&apos;invitation ne sont plus générés par IA.
       </p>
       <div className="overflow-x-auto rounded-2xl border border-ink/5 bg-white shadow-card">
         <table className="w-full min-w-[640px] text-left text-sm">

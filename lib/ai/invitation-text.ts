@@ -1,14 +1,19 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import { features, serverEnv } from "@/lib/env-server";
 import { eventTypeLabel } from "@/lib/event-types";
 import { formatDate, formatTime } from "@/lib/format";
 import type { EventType, InvitationLanguage, ProgramItem } from "@/lib/types";
 
-/** Modèle imposé par CLAUDE.md pour les textes. */
-export const TEXT_MODEL = "claude-sonnet-5-5";
+/**
+ * Textes rédigés par Gemini (CLAUDE.md). On essaie les modèles dans l'ordre : si le premier est
+ * surchargé (erreur 503) ou limité (429), le suivant prend le relais ; sinon, textes types intégrés.
+ */
+export const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
+export const TEXT_MODEL = TEXT_MODELS[0];
+/** Délai maximal par modèle : l'organisateur ne doit pas attendre plus de quelques secondes. */
+const TEXT_TIMEOUT_MS = 25_000;
 
 export interface InvitationTextInput {
   eventType: EventType;
@@ -66,12 +71,12 @@ function buildPrompt(i: InvitationTextInput): string {
     .join("\n");
 }
 
-let client: Anthropic | null = null;
-const getClient = () => (client ??= new Anthropic({ apiKey: serverEnv.anthropicApiKey, timeout: 45_000, maxRetries: 1 }));
+let client: GoogleGenAI | null = null;
+const getClient = () => (client ??= new GoogleGenAI({ apiKey: serverEnv.geminiApiKey }));
 
 /**
  * Génère titre, message et programme. Ne lève jamais d'erreur : en cas
- * d'absence de clé, de refus ou de panne, on revient à un modèle de texte.
+ * d'absence de clé, de panne ou de réponse invalide, on revient à un modèle de texte.
  */
 export async function generateInvitationText(
   input: InvitationTextInput,
@@ -79,36 +84,40 @@ export async function generateInvitationText(
 ): Promise<InvitationText> {
   if (!features.aiText || options.allowAi === false) return templateText(input);
 
-  try {
-    const response = await getClient().messages.parse({
-      model: TEXT_MODEL,
-      max_tokens: 4000,
-      output_config: { effort: "low", format: zodOutputFormat(InvitationTextSchema) },
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildPrompt(input) }],
-    });
-
-    if (response.stop_reason === "refusal" || !response.parsed_output) {
-      return templateText(input);
+  const jsonSchema = z.toJSONSchema(InvitationTextSchema);
+  for (const model of TEXT_MODELS) {
+    try {
+      const response = await getClient().models.generateContent({
+        model,
+        contents: buildPrompt(input),
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          responseMimeType: "application/json",
+          responseJsonSchema: jsonSchema,
+          maxOutputTokens: 1500,
+          temperature: 0.7,
+          httpOptions: { timeout: TEXT_TIMEOUT_MS },
+        },
+      });
+      const parsed = InvitationTextSchema.safeParse(JSON.parse(response.text ?? ""));
+      if (!parsed.success) {
+        console.warn(`[ia-texte] ${model} : réponse hors format, modèle suivant`);
+        continue;
+      }
+      const out = parsed.data;
+      return {
+        title: out.title.slice(0, 160),
+        message: out.message.slice(0, 2000),
+        program: out.program.slice(0, 8).map((p) => ({ time: p.time.slice(0, 20), label: p.label.slice(0, 120) })),
+        source: "ai",
+        model,
+      };
+    } catch (error) {
+      // Surcharge (503), limite (429), délai dépassé : on passe au modèle suivant (messages courts, sans la clé)
+      console.warn(`[ia-texte] ${model} indisponible :`, error instanceof Error ? error.message.slice(0, 120) : "erreur");
     }
-    const out = response.parsed_output;
-    return {
-      title: out.title.slice(0, 160),
-      message: out.message.slice(0, 2000),
-      program: out.program.slice(0, 8).map((p) => ({ time: p.time.slice(0, 20), label: p.label.slice(0, 120) })),
-      source: "ai",
-      model: TEXT_MODEL,
-    };
-  } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
-      console.warn("[ia-texte] limite de débit atteinte, modèle de texte utilisé");
-    } else if (error instanceof Anthropic.APIError) {
-      console.error(`[ia-texte] erreur API ${error.status}`);
-    } else {
-      console.error("[ia-texte] erreur", error);
-    }
-    return templateText(input);
   }
+  return templateText(input);
 }
 
 /* ------------------------------------------------------------------ */

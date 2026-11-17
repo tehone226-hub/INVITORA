@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { THEMES } from "@/config/themes";
+import { getTheme } from "@/config/themes";
 import { ArrowRight, Check, CheckCheck, MessageCircle, Play, Star } from "lucide-react";
 import { sampleContent, siteConfig } from "@/config/site";
 import { heroInvitation } from "@/config/home";
@@ -139,13 +139,13 @@ function PhoneIllustration({ showSamples }: { showSamples: boolean }) {
         aria-hidden="true"
         className="absolute top-[20%] left-[3%] h-[230px] w-[170px] -rotate-[9deg] overflow-hidden rounded-2xl border-4 border-white shadow-card-hover sm:left-[1%] sm:h-[250px] sm:w-[185px]"
       >
-        <Image src={THEMES.bogolan.image} alt="" fill sizes="190px" className="object-cover" />
+        <Image src={getTheme("bogolan--origine").image} alt="" fill sizes="190px" className="object-cover" />
       </div>
       <div
         aria-hidden="true"
         className="absolute top-[34%] right-[3%] h-[230px] w-[170px] rotate-[8deg] overflow-hidden rounded-2xl border-4 border-white shadow-card-hover sm:right-[1%] sm:h-[250px] sm:w-[185px]"
       >
-        <Image src={THEMES.tiebele.image} alt="" fill sizes="190px" className="object-cover" />
+        <Image src={getTheme("tiebele--origine").image} alt="" fill sizes="190px" className="object-cover" />
       </div>
 
       {/* Téléphone */}

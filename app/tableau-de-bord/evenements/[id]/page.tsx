@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowLeft, Download, Eye, MessageCircle, Pencil, RefreshCw, Sparkles, Wand2 } from "lucide-react";
+import { ArrowLeft, Download, Eye, MessageCircle, Pencil, RefreshCw } from "lucide-react";
 import { PLANS } from "@/config/plans";
-import { THEMES } from "@/config/themes";
+import { getTheme } from "@/config/themes";
 import { ButtonLink } from "@/components/button-link";
 import { ActionButton } from "@/components/dashboard/action-button";
 import { CopyLink } from "@/components/dashboard/copy-link";
@@ -12,7 +12,6 @@ import { RsvpLive } from "@/components/dashboard/rsvp-live";
 import { PlanBadge, StatusBadge } from "@/components/dashboard/status-badge";
 import { buttonClass } from "@/components/ui/button-class";
 import { Notice } from "@/components/ui/notice";
-import { MAX_IMAGE_GENERATIONS } from "@/lib/ai/invitation-image";
 import { requireUser } from "@/lib/auth";
 import { features } from "@/lib/env-server";
 import { eventTypeLabel } from "@/lib/event-types";
@@ -24,10 +23,8 @@ import {
   checkPayment,
   deleteRsvp,
   fetchRsvps,
-  generateCover,
   publishEvent,
   regenerateText,
-  resetCover,
   unpublishEvent,
 } from "./actions";
 
@@ -57,11 +54,10 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
   const plan = planOf(event);
   const active = isPlanActive(event);
   const online = isPublic(event);
-  const theme = THEMES[event.theme];
+  const theme = getTheme(event.theme);
   const url = invitationUrl(event.slug);
   const shareText = whatsappMessage(event);
   const reminder = `Bonjour, petit rappel pour ${event.title}${event.starts_at ? ` le ${formatDate(event.starts_at)}` : ""}. Pouvez-vous confirmer votre présence ici : ${url}`;
-  const imagesLeft = Math.max(0, MAX_IMAGE_GENERATIONS - event.image_generations);
   const pendingPayment = payments.find((p) => p.status === "pending");
 
   return (
@@ -104,15 +100,14 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
         <div className="space-y-4">
           <div
             className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-3xl p-6 shadow-card"
-            style={{ backgroundImage: theme.pattern, backgroundSize: `${theme.tileSize}px` }}
+            style={{ backgroundColor: theme.color }}
           >
             <Image
-              src={event.cover_image_url || theme.image}
+              src={theme.image}
               alt=""
               fill
               sizes="360px"
               className="object-cover"
-              unoptimized={Boolean(event.cover_image_url)}
             />
             <div
               className="relative w-full max-w-[230px] rounded-xl px-4 py-7 text-center"
@@ -126,30 +121,12 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
             </div>
           </div>
 
-          <div className="rounded-3xl border border-ink/5 bg-white p-5 shadow-card">
-            <h2 className="flex items-center gap-2 font-sans text-[15px] font-bold">
-              <Wand2 className="size-4 text-terracotta" aria-hidden="true" />
-              Fond créé par l&apos;IA
-            </h2>
-            <p className="mt-1 text-sm text-ink/60">
-              {features.aiImage
-                ? `Un fond unique, sans texte, dans le style « ${theme.name} ». ${imagesLeft} création${imagesLeft > 1 ? "s" : ""} restante${imagesLeft > 1 ? "s" : ""}.`
-                : "Bientôt disponible : l'étoffe choisie est utilisée comme fond."}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {features.aiImage && imagesLeft > 0 && (
-                <ActionButton action={generateCover.bind(null, id)} variant="forest" pendingLabel="Création de l'image (≈ 20 s)…">
-                  <Sparkles />
-                  Créer un fond
-                </ActionButton>
-              )}
-              {event.cover_image_url && (
-                <ActionButton action={resetCover.bind(null, id)} variant="outline">
-                  Revenir à l&apos;étoffe
-                </ActionButton>
-              )}
-            </div>
-          </div>
+          <p className="text-center text-sm text-ink/60">
+            Fond : <span className="font-bold text-ink">{theme.name}</span>.{" "}
+            <Link href={`/tableau-de-bord/evenements/${id}/modifier`} className="font-bold text-terracotta underline underline-offset-4">
+              Changer de fond
+            </Link>
+          </p>
         </div>
 
         {/* Étapes */}

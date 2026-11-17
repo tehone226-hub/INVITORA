@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Save } from "lucide-react";
-import { THEMES } from "@/config/themes";
+import { ThemePicker } from "@/components/theme-picker";
 import { Field, Input, Select, SubmitButton, Textarea } from "@/components/ui/form";
 import { Notice } from "@/components/ui/notice";
 import { EVENT_TYPES, LANGUAGES } from "@/lib/event-types";
@@ -91,15 +91,10 @@ export function EditForm({
           <Field id="rsvp_deadline" label="Date limite de réponse" hint="(facultatif)">
             <Input id="rsvp_deadline" name="rsvp_deadline" type="date" defaultValue={event.rsvp_deadline ?? ""} />
           </Field>
-          <Field id="theme" label="Étoffe">
-            <Select id="theme" name="theme" defaultValue={event.theme}>
-              {Object.values(THEMES).map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <div className="sm:col-span-2">
+            <p className="mb-2 text-sm font-bold">Fond de l&apos;invitation</p>
+            <ThemePicker defaultValue={event.theme} />
+          </div>
         </div>
       </div>
 

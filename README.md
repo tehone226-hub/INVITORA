@@ -13,9 +13,9 @@ Invitations digitales générées par IA pour l'Afrique de l'Ouest : création e
 npm install      # installer les dépendances
 npm run dev      # lancer le site en local → http://localhost:3000
 npm run db:migrate  # appliquer le schéma sur la base Neon
-npm test         # 64 tests (sécurité de la base, paiement, formats)
+npm test         # 77 tests (sécurité de la base, paiement, formats)
 npm run build    # vérifier que tout compile
-npm run art      # régénérer les 4 fonds d'étoffe (scripts/generate-theme-art.mjs)
+npm run art      # régénérer les 100 fonds d'invitation (scripts/generate-theme-art.mjs)
 ```
 
 ## Organisation
@@ -24,7 +24,7 @@ npm run art      # régénérer les 4 fonds d'étoffe (scripts/generate-theme-ar
 | --- | --- |
 | `app/` | Pages : accueil, `/creer`, `/i/[slug]` (invité), `/tableau-de-bord`, `/admin`, `/api/saspay/webhook` |
 | `components/` | Composants d'interface (accueil, invitation, tableau de bord, admin) |
-| `lib/` | Logique serveur : Neon (SQL, auth, API de données), IA (Claude, Gemini), SasPay, formats |
+| `lib/` | Logique serveur : Neon (SQL, auth, API de données), IA (Gemini pour les textes), SasPay, formats |
 | `config/` | Formules et prix (`plans.ts`), thèmes, textes de l'accueil, réglages |
 | `db/migrations/` | Schéma de la base Neon (tables + sécurité RLS), appliqué par `npm run db:migrate` |
 | `tests/` | Tests automatiques (vitest + PostgreSQL local PGlite) |

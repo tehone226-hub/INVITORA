@@ -1,9 +1,9 @@
 import Image from "next/image";
-import { THEMES, type ThemeId } from "@/config/themes";
+import { getTheme, type ThemeId } from "@/config/themes";
 import { cn } from "@/lib/utils";
 
 interface InvitationCardProps {
-  theme: ThemeId;
+  theme: ThemeId | string;
   category: string;
   /** « Awa & Moussa » : le « & » est mis en valeur automatiquement */
   names: string;
@@ -20,7 +20,7 @@ interface InvitationCardProps {
 /**
  * Aperçu d'invitation : fond illustré SANS texte + textes posés en HTML par-dessus.
  * C'est le principe retenu pour les vraies invitations (règle 2 de CLAUDE.md).
- * Le motif SVG sert de secours pendant le chargement de l'image.
+ * La couleur moyenne du fond s'affiche pendant le chargement de l'image.
  */
 export function InvitationCard({
   theme,
@@ -33,17 +33,14 @@ export function InvitationCard({
   eager = false,
   className,
 }: InvitationCardProps) {
-  const t = THEMES[theme];
+  const t = getTheme(theme);
   const [first, second] = names.split(" & ");
   const lg = size === "lg";
 
   return (
     <div
       className={cn("relative flex items-center justify-center overflow-hidden", lg ? "p-6" : "p-5", className)}
-      style={{
-        backgroundImage: t.pattern,
-        backgroundSize: `${t.tileSize}px ${t.tileSize}px`,
-      }}
+      style={{ backgroundColor: t.color }}
     >
       <Image
         src={t.image}

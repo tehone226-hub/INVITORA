@@ -89,43 +89,17 @@ Mot clé mis en valeur dans un titre (ex. « 30 secondes ») : même police, cou
 - Dates : « samedi 14 décembre 2026 ». Montants : « 4 900 FCFA » (espace insécable).
 - Messages d'erreur : expliquer et proposer une solution (« Le lien n'a pas pu être envoyé. Vérifiez votre connexion et réessayez. »).
 
-## 7. Les quatre thèmes d'invitation
+## 7. Les fonds d'invitation : 10 styles × 10 coloris
 
-Chaque thème définit une palette, une police de titre pour la carte, un motif décoratif en CSS/SVG léger et un **fond généré par IA sans aucun texte** (avec une image de secours locale). Les noms, dates et lieux sont toujours posés par-dessus en HTML/CSS.
+Chaque fond est une étoffe dessinée par nous (philosophie « Trame Vivante » : `design/art/philosophie-visuelle.md`), **sans aucun texte** : les noms, dates et lieux sont toujours posés par-dessus en HTML/CSS, sur un panneau crème. Il n'y a pas de génération d'images par IA.
 
-### 7.1 « Faso Dan Fani » — l'étoffe tissée
-- Inspiration : bandes verticales du pagne tissé du Burkina Faso.
-- Couleurs : `#C0572B` terre cuite, `#1F4D3A` vert, `#D9A441` or, `#FAF5EC` crème.
-- Motif : fines bandes verticales alternées, bordure en damier miniature.
-- Usages : mariage, dot, grande cérémonie.
-- Police de carte : Fraunces.
-- Fond IA : étoffe tissée en bandes, tons chauds, sans texte.
+**Les 10 styles** : Faso Dan Fani (bandes tissées), Bogolan (symboles sur écru), Tiébélé (murs peints), Indigo de Ouaga (teinture à la réserve), Wax (éventails et cercles), Sénoufo (tissu peint de Korhogo), Adinkra (symboles estampés), Savane (épis de mil), Coton brodé (fleurs et festons), Ardoise (filets d'or sur vert profond).
 
-### 7.2 « Bogolan » — l'argile et la terre
-- Inspiration : tissu teint à la boue, motifs géométriques sur fond écru.
-- Couleurs : `#2B1D14` brun sombre, `#8A5A33` terre, `#EAD9BC` écru, touche `#D9A441`.
-- Motif : lignes brisées, croix, points, traits irréguliers dessinés à la main.
-- Usages : baptême, naissance, fête de famille, funérailles sobres.
-- Police de carte : Fraunces italique pour les prénoms.
-- Fond IA : texture de tissu écru avec motifs discrets en périphérie.
+**Les 10 coloris** de chaque style : Couleurs d'origine, Braise, Ocre, Olive, Forêt, Lagune, Nuit, Prune, Grenade, Cendre (sobre, pour les cérémonies de deuil).
 
-### 7.3 « Tiébélé » — les murs peints
-- Inspiration : façades peintes de Tiébélé (Burkina Faso), géométrie noire et blanche sur ocre.
-- Couleurs : `#B5532A` ocre rouge, `#F4E6CF` chaux, `#211915` noir, accent `#D9A441`.
-- Motif : losanges, triangles et lignes en zigzag, en bordure.
-- Usages : anniversaire, fête entre amis, événement culturel.
-- Police de carte : Nunito 800 en majuscules pour les titres.
-- Fond IA : mur d'argile peint, géométrique, sans texte.
+**Fabrication** : `npm run art` (scripts/generate-theme-art.mjs). Les styles sont du dessin vectoriel programmé ; les coloris sont des rotations de teinte. Résultat : `public/demo/themes/<style>--<coloris>.webp` (≈ 70 Ko chacun) et `config/theme-colors.json`.
 
-### 7.4 « Indigo de Ouaga » — la nuit élégante
-- Inspiration : tissus teints à l'indigo, soirées et cérémonies de fin de journée.
-- Couleurs : `#1B2A49` indigo, `#3F5E8C` bleu teinture, `#F2E8D5` sable, accent `#D9A441`.
-- Motif : fines lignes dorées, petits motifs en étoile.
-- Usages : entreprise, gala, soutenance, anniversaire chic.
-- Police de carte : Fraunces 600 en capitales espacées.
-- Fond IA : étoffe indigo texturée, reflets dorés, sans texte.
-
-Pour chaque thème, prévoir une image de secours dans `public/demo/themes/` (même nom que le thème, ex. `faso-dan-fani.webp`) utilisée si la génération échoue.
+**Choix par défaut selon l'événement** : mariage → Faso Dan Fani ; dot → Sénoufo ; baptême → Coton brodé ; anniversaire → Wax ; funérailles → Adinkra (Cendre) ; entreprise → Ardoise ; soutenance → Bogolan.
 
 ## 8. Logo
 - Signe : carré vert profond (`forest`) aux angles arrondis, avec un « I » crème en Fraunces au centre.
@@ -136,7 +110,7 @@ Pour chaque thème, prévoir une image de secours dans `public/demo/themes/` (m�
 - Interdits : déformer, changer les couleurs, ajouter une ombre portée.
 
 ## 9. Images et performance
-- Fonds IA : uniquement fonds et ornements, jamais de texte dans l'image.
+- Fonds : uniquement fonds et ornements, jamais de texte dans l'image.
 - Formats légers (WebP), 800 px de large maximum pour la page invité, chargement différé.
 - Page invité : moins de 500 Ko, affichée en moins de 3 s sur une connexion 3G/4G.
 

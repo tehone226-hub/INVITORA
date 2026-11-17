@@ -57,7 +57,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Awa & Moussa",
     date: "samedi 12 décembre 2026",
     place: "Jardin des Manguiers • Ouagadougou",
-    theme: "faso-dan-fani",
+    theme: "faso-dan-fani--origine",
   },
   {
     id: "anniversaire-fatou",
@@ -66,7 +66,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Fatou a 30 ans",
     date: "samedi 19 décembre 2026",
     place: "Terrasse Le Baobab • Bobo-Dioulasso",
-    theme: "tiebele",
+    theme: "wax--origine",
   },
   {
     id: "bapteme-nafissa",
@@ -75,7 +75,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Bienvenue Nafissa",
     date: "dimanche 10 janvier 2027",
     place: "Cour familiale • Koudougou",
-    theme: "bogolan",
+    theme: "coton--origine",
   },
   {
     id: "funerailles-kone",
@@ -84,7 +84,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Hommage à Papa Koné",
     date: "samedi 16 janvier 2027",
     place: "Cérémonie • Ouahigouya",
-    theme: "indigo",
+    theme: "adinkra--cendre",
   },
   {
     id: "entreprise-gala",
@@ -93,7 +93,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Gala de fin d'année",
     date: "vendredi 18 décembre 2026",
     place: "Salle des fêtes • Ouagadougou",
-    theme: "indigo",
+    theme: "ardoise--origine",
   },
   {
     id: "dot-mariam-seydou",
@@ -102,7 +102,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Mariam & Seydou",
     date: "samedi 9 janvier 2027",
     place: "Cour familiale • Bamako",
-    theme: "tiebele",
+    theme: "senoufo--origine",
   },
 ];
 
@@ -112,5 +112,5 @@ export const heroInvitation = {
   names: "Aminata & Ibrahim",
   date: "samedi 12 décembre 2026",
   city: "Ouagadougou",
-  theme: "faso-dan-fani" as ThemeId,
+  theme: "faso-dan-fani--origine" as ThemeId,
 };

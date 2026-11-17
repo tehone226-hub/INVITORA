@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { isBackendConfigured } from "@/lib/env";
 import { getAuth } from "@/lib/neon/auth";
 import { db, rows } from "@/lib/neon/sql";
@@ -31,6 +32,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   // Lire les cookies d'abord : pendant le pré-rendu, la page attend la requête (zone Suspense) au lieu
   // de laisser le SDK d'authentification échouer et journaliser une erreur.
+  await connection(); // lecture de la session : uniquement au moment de la requête, jamais pendant la préparation
   await cookies();
   const { data } = await getAuth().getSession();
   const user = data?.user;

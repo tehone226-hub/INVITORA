@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import type { ThemeId } from "@/config/themes";
+import { isThemeId } from "@/config/themes";
 import { generateInvitationText } from "@/lib/ai/invitation-text";
 import { getCurrentUser } from "@/lib/auth";
 import { features } from "@/lib/env-server";
@@ -16,8 +16,6 @@ import type { ActionState } from "@/lib/types";
 /** Nombre maximal de textes IA par utilisateur et par jour (maîtrise des coûts). */
 const DAILY_AI_TEXT_LIMIT = 15;
 
-const THEMES: ThemeId[] = ["faso-dan-fani", "bogolan", "tiebele", "indigo"];
-
 const CreateSchema = z.object({
   eventType: z.string().refine(isEventType, "Choisissez un type d'événement."),
   hosts: z.string().trim().min(2, "Indiquez qui organise ou qui est célébré.").max(160),
@@ -27,7 +25,7 @@ const CreateSchema = z.object({
   city: z.string().trim().min(2, "Indiquez la ville.").max(80),
   language: z.string().refine(isLanguage),
   tone: z.enum(["chaleureux", "solennel", "festif", "sobre"]),
-  theme: z.string().refine((v): v is ThemeId => THEMES.includes(v as ThemeId)),
+  theme: z.string().refine(isThemeId, "Choisissez un fond de la liste."),
   details: z.string().trim().max(600),
 });
 

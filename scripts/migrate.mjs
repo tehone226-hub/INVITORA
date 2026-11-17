@@ -14,7 +14,7 @@ import pg from "pg";
 if (existsSync(".env.local")) {
   for (const line of readFileSync(".env.local", "utf8").split(/\r?\n/)) {
     const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2];
+    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^"(.*)"$/, "$1");
   }
 }
 

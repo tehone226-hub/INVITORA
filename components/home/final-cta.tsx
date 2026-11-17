@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { sampleContent, siteConfig } from "@/config/site";
-import { THEMES } from "@/config/themes";
+import { getTheme } from "@/config/themes";
 import { ButtonLink } from "@/components/button-link";
 
 export function FinalCta({ showSamples }: { showSamples: boolean }) {
@@ -10,7 +10,7 @@ export function FinalCta({ showSamples }: { showSamples: boolean }) {
         {/* Lisière tissée à droite */}
         <div aria-hidden="true" className="absolute inset-y-0 right-0 w-24 sm:w-44">
           <Image
-            src={THEMES["faso-dan-fani"].image}
+            src={getTheme("faso-dan-fani--origine").image}
             alt=""
             fill
             sizes="180px"

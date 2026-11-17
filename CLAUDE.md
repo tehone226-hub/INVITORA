@@ -14,8 +14,8 @@ Le porteur du projet débute en programmation : explique simplement ce que tu fa
 ## Stack
 - Next.js (App Router, TypeScript), Tailwind CSS, shadcn/ui.
 - Neon : base PostgreSQL avec RLS (API de données Neon, rôle authenticated + auth.uid()), Neon Auth (Better Auth : code à 6 chiffres par e-mail + Google), actualisation automatique des réponses RSVP (toutes les 8 s). Opérations de confiance côté serveur par connexion SQL directe (DATABASE_URL). Images générées : Vercel Blob.
-- Texte IA : API Claude via `@anthropic-ai/sdk`, modèle `claude-sonnet-5-5`, côté serveur uniquement.
-- Images IA : API Gemini via `@google/genai`, modèle `gemini-nano-banana-2.1` ; `gemini-3.1-flash-lite-image` pour les aperçus gratuits. Doc : https://ai.google.dev/gemini-api/docs/image-generation
+- Texte IA : API Gemini via `@google/genai`, modèle `gemini-3.5-flash-lite` (secours : `gemini-3.1-flash-lite`), sortie JSON validée par Zod, côté serveur uniquement. Textes types intégrés si Gemini est indisponible.
+- Images : AUCUNE génération par IA. Les fonds d'invitation sont 100 images dessinées par nous (10 styles × 10 coloris : `config/themes.ts`, `scripts/generate-theme-art.mjs`, `public/demo/themes/`), légères et sans texte.
 - Paiement : SasPay (https://docs.saspay.me/), Orange Money `orange_bf`, Moov Money `moov_bf`, carte. Page de paiement hébergée (checkout session).
 - Hébergement : Vercel. Code : GitHub.
 
@@ -35,8 +35,8 @@ La maquette validée est `design/InvitoraAccueil.png`. Toute page reprend sa cha
 Les prix et limites vivent dans un seul fichier de configuration (`config/plans.ts`), jamais en dur dans les composants.
 
 ## Règles impératives
-1. Aucune clé secrète dans le code ni dans Git : tout va dans `.env.local` (et `.env.example` sans valeurs). Les appels Claude, Gemini et SasPay se font uniquement côté serveur.
-2. Images Gemini : uniquement des fonds et ornements, SANS AUCUN TEXTE dans l'image. Prénoms, dates et lieux sont posés par-dessus en HTML/CSS. Mettre en cache les images, limiter à 3 générations par aperçu, prévoir une image de secours par thème.
+1. Aucune clé secrète dans le code ni dans Git : tout va dans `.env.local` (et `.env.example` sans valeurs). Les appels Gemini et SasPay se font uniquement côté serveur.
+2. Fonds d'invitation : uniquement des fonds et ornements, SANS AUCUN TEXTE dans l'image. Prénoms, dates et lieux sont posés par-dessus en HTML/CSS. Pas de génération d'images par IA : on choisit parmi les 100 fonds prédessinés (style puis coloris).
 3. Paiement : une formule ne s'active que si le webhook SasPay est valide (signature HMAC-SHA256 de `${X-Webhook-Timestamp}.${corpsBrut}` avec `SASPAY_WEBHOOK_SECRET`, comparaison en temps constant, horodatage de moins de 5 min), traité une seule fois par `data.id`, ET si l'API SasPay confirme le statut `SUCCESS`. Jamais sur le seul retour du navigateur. Montants en chaînes décimales (`"4900.00"`).
 4. SasPay n'a pas de mode test fiable : les clés de test peuvent débiter de l'argent réel. Prévenir avant tout test de paiement et utiliser 100 à 200 FCFA.
 5. Sécurité par ligne (RLS) sur toutes les tables : un organisateur ne voit que ses événements ; le public peut seulement lire un événement publié et créer une réponse RSVP.

@@ -30,8 +30,7 @@ async function Overview() {
   const o = await getAdminOverview();
   const missing = [
     !features.database && "clé service Supabase",
-    !features.aiText && "Claude (textes)",
-    !features.aiImage && "Gemini (images)",
+    !features.aiText && "Gemini (textes)",
     !features.payments && "SasPay (paiement)",
   ].filter(Boolean);
 
@@ -63,10 +62,9 @@ async function Overview() {
         <MiniBarChart title="Réponses d'invités par jour" color="#2E8058" data={o.rsvpSeries} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3">
         <KpiTile label="Paiements en attente" value={n(o.pendingPayments)} />
         <KpiTile label="Textes IA (30 j)" value={n(o.aiText30)} />
-        <KpiTile label="Images IA (30 j)" value={n(o.aiImage30)} />
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">

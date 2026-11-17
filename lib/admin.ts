@@ -28,7 +28,7 @@ export async function getAdminOverview() {
   const nowIso = new Date().toISOString();
   const count = { count: "exact" as const, head: true };
 
-  const [users, events, online, rsvps, pending, paid, newUsers, newRsvps, aiText, aiImage, recentPayments, recentUsers] =
+  const [users, events, online, rsvps, pending, paid, newUsers, newRsvps, aiText, recentPayments, recentUsers] =
     await Promise.all([
       supabase.from("profiles").select("id", count),
       supabase.from("events").select("id", count).neq("status", "archived"),
@@ -39,7 +39,6 @@ export async function getAdminOverview() {
       supabase.from("profiles").select("created_at").gte("created_at", since14).limit(10000),
       supabase.from("rsvps").select("created_at").gte("created_at", since14).limit(20000),
       supabase.from("ai_usage").select("id", count).eq("kind", "text").gte("created_at", since30),
-      supabase.from("ai_usage").select("id", count).eq("kind", "image").gte("created_at", since30),
       supabase.from("payments").select("*").order("created_at", { ascending: false }).limit(6).returns<PaymentRow[]>(),
       supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(6).returns<ProfileRow[]>(),
     ]);
@@ -60,7 +59,6 @@ export async function getAdminOverview() {
     revenue,
     revenue30,
     aiText30: aiText.count ?? 0,
-    aiImage30: aiImage.count ?? 0,
     signupsSeries: dailySeries(((newUsers.data ?? []) as { created_at: string }[]).map((r) => r.created_at), 14),
     rsvpSeries: dailySeries(((newRsvps.data ?? []) as { created_at: string }[]).map((r) => r.created_at), 14),
     recentPayments: recentPayments.data ?? [],

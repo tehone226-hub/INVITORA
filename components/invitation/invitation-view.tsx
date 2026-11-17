@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { CalendarDays, Clock, MapPin, Phone, Shirt } from "lucide-react";
-import { THEMES } from "@/config/themes";
+import { getTheme } from "@/config/themes";
 import { eventTypeLabel } from "@/lib/event-types";
 import { formatDate, formatTime } from "@/lib/format";
 import type { EventRow } from "@/lib/types";
@@ -13,7 +13,7 @@ const mapsLink = (e: EventRow) =>
 
 /** Carte d'invitation complète (sans le formulaire RSVP, passé en `children`). */
 export function InvitationView({ event, children, actions }: { event: EventRow; children?: React.ReactNode; actions?: React.ReactNode }) {
-  const theme = THEMES[event.theme] ?? THEMES["faso-dan-fani"];
+  const theme = getTheme(event.theme);
   const [first, second] = (event.hosts ?? "").split(" & ");
   const map = mapsLink(event);
 
@@ -22,17 +22,16 @@ export function InvitationView({ event, children, actions }: { event: EventRow; 
       {/* Carte illustrée : fond sans texte + textes en HTML (règle 2) */}
       <div
         className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-[28px] p-7 shadow-float"
-        style={{ backgroundImage: theme.pattern, backgroundSize: `${theme.tileSize}px` }}
+        style={{ backgroundColor: theme.color }}
       >
         <Image
-          src={event.cover_image_url || theme.image}
+          src={theme.image}
           alt=""
           fill
           loading="eager"
           fetchPriority="high"
           sizes="(min-width: 480px) 448px, 100vw"
           className="object-cover"
-          unoptimized={Boolean(event.cover_image_url)}
         />
         <div
           className="relative flex w-full max-w-[290px] flex-col items-center gap-2.5 rounded-2xl px-5 py-9 text-center shadow-[0_12px_36px_rgba(0,0,0,0.25)]"

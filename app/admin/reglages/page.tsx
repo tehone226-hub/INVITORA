@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { AdminSkeleton } from "@/components/admin/ui";
-import { IMAGE_MODEL_PAID, IMAGE_MODEL_PREVIEW } from "@/lib/ai/invitation-image";
-import { TEXT_MODEL } from "@/lib/ai/invitation-text";
+import { TEXT_MODELS } from "@/lib/ai/invitation-text";
 import { requireAdmin } from "@/lib/auth";
 import { isBackendConfigured, publicEnv } from "@/lib/env";
 import { features } from "@/lib/env-server";
@@ -30,8 +29,7 @@ async function Settings() {
   const services = [
     { name: "Base de données et connexion Neon", ok: isBackendConfigured, help: "NEON_DATA_API_URL, NEON_AUTH_BASE_URL, NEON_AUTH_COOKIE_SECRET" },
     { name: "Connexion SQL serveur (Neon)", ok: features.database, help: "DATABASE_URL" },
-    { name: `Textes IA — ${TEXT_MODEL}`, ok: features.aiText, help: "ANTHROPIC_API_KEY" },
-    { name: `Images IA — ${IMAGE_MODEL_PAID} / ${IMAGE_MODEL_PREVIEW}`, ok: features.aiImage, help: "GEMINI_API_KEY, BLOB_READ_WRITE_TOKEN (Vercel Blob)" },
+    { name: `Textes IA — ${TEXT_MODELS.join(" puis ")}`, ok: features.aiText, help: "GEMINI_API_KEY" },
     { name: "Paiement SasPay", ok: features.payments, help: "SASPAY_SECRET_KEY, SASPAY_WEBHOOK_SECRET" },
     { name: `Adresse du site : ${publicEnv.siteUrl}`, ok: !publicEnv.siteUrl.includes("localhost"), help: "NEXT_PUBLIC_SITE_URL (adresse publique en production)" },
   ];

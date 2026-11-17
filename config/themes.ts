@@ -1,108 +1,105 @@
 /**
- * Thèmes d'invitation (voir BRAND.md, section 7).
- * Les motifs sont de petits SVG répétés en fond : aucun texte, très légers
- * (quelques centaines d'octets), donc parfaits en 3G.
- * Plus tard, les fonds générés par IA (étape 6) viendront s'ajouter par-dessus,
- * avec ces motifs comme image de secours.
+ * Fonds d'invitation : 10 styles × 10 coloris = 100 fonds, dessinés par nous
+ * (scripts/generate-theme-art.mjs, philosophie « Trame Vivante » dans design/art/).
+ * Aucun texte n'est dans les images : prénoms, dates et lieux sont posés en HTML par-dessus.
+ * Il n'y a plus de génération d'images par IA : ces fonds sont fixes, légers (≈ 70 Ko) et gratuits.
  */
+import themeColors from "./theme-colors.json";
 
-export type ThemeId = "faso-dan-fani" | "bogolan" | "tiebele" | "indigo";
+export const STYLES = [
+  { id: "faso-dan-fani", name: "Faso Dan Fani", description: "L'étoffe tissée : bandes verticales et lisières en damier." },
+  { id: "bogolan", name: "Bogolan", description: "La terre et l'argile : symboles tracés à la main sur fond écru." },
+  { id: "tiebele", name: "Tiébélé", description: "Les murs peints : triangles, losanges et zigzags." },
+  { id: "indigo", name: "Indigo de Ouaga", description: "L'étoffe teinte à la réserve : cercles et étoiles d'or." },
+  { id: "wax", name: "Wax", description: "Le pagne imprimé : éventails et cercles concentriques." },
+  { id: "senoufo", name: "Sénoufo", description: "Le tissu peint de Korhogo : poissons, losanges et zigzags." },
+  { id: "adinkra", name: "Adinkra", description: "Le tissu estampé : symboles géométriques sur fond sombre." },
+  { id: "savane", name: "Savane", description: "Les épis de mil au soleil bas, tout en douceur." },
+  { id: "coton", name: "Coton brodé", description: "La dentelle de fil vert et or, fleurs et festons." },
+  { id: "ardoise", name: "Ardoise", description: "Filets d'or sur vert profond : sobre et élégant." },
+] as const;
+
+export const COLORWAYS = [
+  { id: "origine", name: "Couleurs d'origine" },
+  { id: "braise", name: "Braise" },
+  { id: "ocre", name: "Ocre" },
+  { id: "olive", name: "Olive" },
+  { id: "foret", name: "Forêt" },
+  { id: "lagune", name: "Lagune" },
+  { id: "nuit", name: "Nuit" },
+  { id: "prune", name: "Prune" },
+  { id: "grenade", name: "Grenade" },
+  { id: "cendre", name: "Cendre" },
+] as const;
+
+export type StyleId = (typeof STYLES)[number]["id"];
+export type ColorwayId = (typeof COLORWAYS)[number]["id"];
+/** « faso-dan-fani--origine », « wax--braise »… */
+export type ThemeId = `${StyleId}--${ColorwayId}`;
+
+export const DEFAULT_THEME: ThemeId = "faso-dan-fani--origine";
 
 export interface InvitationTheme {
   id: ThemeId;
+  styleId: StyleId;
+  colorwayId: ColorwayId;
+  /** « Wax · Braise » */
   name: string;
   description: string;
-  /** Fond illustré sans texte (scripts/generate-theme-art.mjs) */
+  /** Fond illustré sans texte (public/demo/themes) */
   image: string;
-  /** Tuile SVG répétée en fond (secours léger pendant le chargement) */
-  pattern: string;
-  /** Taille de la tuile, en pixels */
-  tileSize: number;
+  /** Couleur moyenne du fond : affichée pendant le chargement de l'image et pour les pastilles */
+  color: string;
   colors: {
-    /** Fond du panneau central */
+    /** Fond du panneau central (toujours clair, pour la lisibilité) */
     panel: string;
     /** Couleur du texte sur le panneau */
     text: string;
-    /** Couleur d'accent (petites capitales, « & », filets) */
+    /** Couleur d'accent : petites capitales, « & », filets */
     accent: string;
   };
 }
 
-function svgUrl(svg: string): string {
-  return `url("data:image/svg+xml,${encodeURIComponent(svg.replace(/\s+/g, " ").trim())}")`;
+/** Assombrit une couleur « #rrggbb » (pour le texte d'accent, qui doit rester lisible sur le panneau clair). */
+function darken(hex: string, amount: number): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const c = (shift: number) => Math.round(((n >> shift) & 255) * (1 - amount)).toString(16).padStart(2, "0");
+  return `#${c(16)}${c(8)}${c(0)}`;
 }
 
-export const THEMES: Record<ThemeId, InvitationTheme> = {
-  "faso-dan-fani": {
-    id: "faso-dan-fani",
-    image: "/demo/themes/faso-dan-fani.webp",
-    name: "Faso Dan Fani",
-    description: "L'étoffe tissée : bandes verticales terre cuite, vert et or.",
-    tileSize: 48,
-    pattern: svgUrl(`
-      <svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'>
-        <rect width='48' height='48' fill='#C0572B'/>
-        <rect width='8' height='48' fill='#1F4D3A'/>
-        <rect x='10' width='2' height='48' fill='#D9A441'/>
-        <rect x='14' width='1' height='48' fill='#FAF5EC' opacity='.6'/>
-        <rect x='30' width='4' height='48' fill='#A94A22'/>
-        <rect x='36' width='2' height='48' fill='#D9A441'/>
-        <g fill='#FAF5EC' opacity='.3'><rect width='8' height='4'/><rect y='24' width='8' height='4'/></g>
-      </svg>`),
-    colors: { panel: "rgba(250,245,236,0.95)", text: "#211915", accent: "#C0572B" },
-  },
-  bogolan: {
-    id: "bogolan",
-    image: "/demo/themes/bogolan.webp",
-    name: "Bogolan",
-    description: "L'argile et la terre : motifs dessinés à la main sur fond écru.",
-    tileSize: 64,
-    pattern: svgUrl(`
-      <svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>
-        <rect width='64' height='64' fill='#EAD9BC'/>
-        <g stroke='#2B1D14' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'>
-          <path d='M4 8 L12 4 L20 8 L28 4'/>
-          <path d='M44 6 v10 M39 11 h10'/>
-          <circle cx='12' cy='40' r='5'/>
-          <path d='M36 36 l8 8 l8 -8'/>
-        </g>
-        <g fill='#8A5A33'>
-          <circle cx='26' cy='24' r='2'/><circle cx='32' cy='24' r='2'/>
-          <circle cx='56' cy='54' r='2'/><circle cx='4' cy='58' r='1.5'/>
-        </g>
-      </svg>`),
-    colors: { panel: "rgba(250,245,236,0.94)", text: "#2B1D14", accent: "#8A5A33" },
-  },
-  tiebele: {
-    id: "tiebele",
-    image: "/demo/themes/tiebele.webp",
-    name: "Tiébélé",
-    description: "Les murs peints : losanges noirs et blancs sur ocre.",
-    tileSize: 48,
-    pattern: svgUrl(`
-      <svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'>
-        <rect width='48' height='48' fill='#B5532A'/>
-        <path d='M24 4 L44 24 L24 44 L4 24Z' fill='#F4E6CF'/>
-        <path d='M24 12 L36 24 L24 36 L12 24Z' fill='#211915'/>
-        <path d='M24 18 L30 24 L24 30 L18 24Z' fill='#B5532A'/>
-        <path d='M0 0 H8 L0 8Z M48 0 H40 L48 8Z M0 48 H8 L0 40Z M48 48 H40 L48 40Z' fill='#211915'/>
-      </svg>`),
-    colors: { panel: "#F4E6CF", text: "#211915", accent: "#B5532A" },
-  },
-  indigo: {
-    id: "indigo",
-    image: "/demo/themes/indigo.webp",
-    name: "Indigo de Ouaga",
-    description: "La nuit élégante : étoffe indigo, fines touches dorées.",
-    tileSize: 56,
-    pattern: svgUrl(`
-      <svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'>
-        <rect width='56' height='56' fill='#1B2A49'/>
-        <circle cx='14' cy='14' r='9' fill='none' stroke='#3F5E8C' stroke-width='1.5'/>
-        <circle cx='42' cy='42' r='9' fill='none' stroke='#3F5E8C' stroke-width='1.5'/>
-        <path d='M42 10 l2 4 l4 2 l-4 2 l-2 4 l-2 -4 l-4 -2 l4 -2z' fill='#D9A441' opacity='.8'/>
-        <path d='M14 38 l1.5 3 l3 1.5 l-3 1.5 l-1.5 3 l-1.5 -3 l-3 -1.5 l3 -1.5z' fill='#D9A441' opacity='.6'/>
-      </svg>`),
-    colors: { panel: "rgba(27,42,73,0.9)", text: "#F2E8D5", accent: "#D9A441" },
-  },
+const colors = themeColors as Record<string, string>;
+
+export const THEMES = Object.fromEntries(
+  STYLES.flatMap((style) =>
+    COLORWAYS.map((cw) => {
+      const id = `${style.id}--${cw.id}` as ThemeId;
+      const color = colors[id] ?? "#C0572B";
+      const theme: InvitationTheme = {
+        id,
+        styleId: style.id,
+        colorwayId: cw.id,
+        name: `${style.name} · ${cw.name}`,
+        description: style.description,
+        image: `/demo/themes/${id}.webp`,
+        color,
+        colors: { panel: "rgba(250,245,236,0.95)", text: "#211915", accent: darken(color, 0.38) },
+      };
+      return [id, theme] as const;
+    }),
+  ),
+) as Record<ThemeId, InvitationTheme>;
+
+export const THEME_IDS = Object.keys(THEMES) as ThemeId[];
+
+export const isThemeId = (value: unknown): value is ThemeId => typeof value === "string" && Object.hasOwn(THEMES, value);
+
+/** Thème d'une invitation ; repli sur le thème par défaut si l'identifiant est inconnu. */
+export const getTheme = (id: string | null | undefined): InvitationTheme => (isThemeId(id) ? THEMES[id] : THEMES[DEFAULT_THEME]);
+
+/** Ancien identifiant (4 thèmes sans coloris) → nouvel identifiant. */
+export const LEGACY_THEMES: Record<string, ThemeId> = {
+  "faso-dan-fani": "faso-dan-fani--origine",
+  bogolan: "bogolan--origine",
+  tiebele: "tiebele--origine",
+  indigo: "indigo--origine",
 };
