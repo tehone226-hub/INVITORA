@@ -5,10 +5,12 @@ import { serverEnv } from "@/lib/env-server";
 /**
  * Client SasPay (https://docs.saspay.me/). Notes d'intégration : docs/saspay.md
  * RÈGLE 4 : les clés de test peuvent débiter de l'argent réel. Prévenir avant
- * tout test et utiliser 100 à 200 FCFA (variable SASPAY_TEST_AMOUNT_XOF).
+ * tout test et utiliser 200 FCFA, le minimum accepté par SasPay (variable SASPAY_TEST_AMOUNT_XOF).
  */
 export const SASPAY_API = "https://api.saspay.me/api/v1";
 export const WEBHOOK_TOLERANCE_SECONDS = 300;
+/** SasPay refuse les montants inférieurs (« Le montant minimum est de 200 XOF »). */
+export const SASPAY_MIN_AMOUNT_XOF = 200;
 
 export class SaspayError extends Error {
   constructor(
@@ -36,19 +38,33 @@ async function call<T>(method: "GET" | "POST", path: string, body?: unknown, tim
   });
   const json = (await res.json().catch(() => null)) as
     | { success: true; data: T }
-    | { success: false; error?: { message?: string; code?: string } }
+    | { success: false; error?: Record<string, unknown> }
     | null;
   if (!res.ok || !json || json.success !== true) {
     const err = json && json.success === false ? json.error : undefined;
-    throw new SaspayError(err?.message ?? `Erreur SasPay (${res.status})`, res.status, err?.code);
+    throw new SaspayError(saspayErrorMessage(err) ?? `Erreur SasPay (${res.status})`, res.status, typeof err?.code === "string" ? err.code : undefined);
   }
   return json.data;
+}
+
+/**
+ * Message lisible d'une erreur SasPay. Deux formes existent : `{ message, code }`
+ * et, pour un champ refusé, `{ amount: ["Le montant minimum est de 200 XOF."] }`.
+ */
+export function saspayErrorMessage(err: Record<string, unknown> | undefined): string | undefined {
+  if (!err) return undefined;
+  if (typeof err.message === "string") return err.message;
+  if (typeof err.detail === "string") return err.detail;
+  const fields = Object.entries(err)
+    .filter(([k]) => k !== "code")
+    .map(([k, v]) => `${k} : ${Array.isArray(v) ? v.join(" ") : String(v)}`);
+  return fields.length ? fields.join(" ; ").slice(0, 300) : undefined;
 }
 
 /** Montant en chaîne décimale (« 4900.00 ») ; remplacé par le montant de test s'il est défini. */
 export function saspayAmount(priceXof: number): string {
   const test = process.env.SASPAY_TEST_AMOUNT_XOF;
-  const value = test && /^\d+$/.test(test) ? Number(test) : priceXof;
+  const value = test && /^\d+$/.test(test) ? Math.max(SASPAY_MIN_AMOUNT_XOF, Number(test)) : priceXof;
   return value.toFixed(2);
 }
 

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const { verifyWebhookSignature, parseWebhookPayload, saspayAmount } = await import("@/lib/saspay");
+const { verifyWebhookSignature, parseWebhookPayload, saspayAmount, saspayErrorMessage } = await import("@/lib/saspay");
 
 const SECRET = "whsec_test_123";
 const sign = (ts: string, body: string, secret = SECRET) =>
@@ -78,8 +78,13 @@ describe("montants SasPay", () => {
     expect(saspayAmount(14900)).toBe("14900.00");
   });
   it("utilise le montant de test s'il est défini (règle 4)", () => {
+    process.env.SASPAY_TEST_AMOUNT_XOF = "500";
+    expect(saspayAmount(4900)).toBe("500.00");
+    // SasPay refuse moins de 200 FCFA : un montant de test trop bas est relevé au minimum.
     process.env.SASPAY_TEST_AMOUNT_XOF = "100";
-    expect(saspayAmount(4900)).toBe("100.00");
+    expect(saspayAmount(4900)).toBe("200.00");
+    expect(saspayErrorMessage({ amount: ["Le montant minimum est de 200 XOF."] })).toBe("amount : Le montant minimum est de 200 XOF.");
+    expect(saspayErrorMessage({ message: "Clé invalide", code: "unauthorized" })).toBe("Clé invalide");
     delete process.env.SASPAY_TEST_AMOUNT_XOF;
   });
 });

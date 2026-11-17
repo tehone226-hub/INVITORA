@@ -246,7 +246,7 @@ export async function startCheckout(id: string, plan: PlanId): Promise<ActionSta
     checkoutUrl = session.checkout_url;
   } catch (e) {
     await sql`update public.payments set status = 'failed' where id = ${payment.id}`;
-    console.error("[paiement] création de session", e instanceof SaspayError ? `${e.status} ${e.code}` : e);
+    console.error("[paiement] création de session", e instanceof SaspayError ? `${e.status} ${e.code ?? ""} ${e.message}` : e);
     return { ok: false, message: "Le service de paiement ne répond pas. Réessayez dans quelques minutes." };
   }
   redirect(checkoutUrl);

@@ -38,7 +38,7 @@ Les prix et limites vivent dans un seul fichier de configuration (`config/plans.
 1. Aucune clé secrète dans le code ni dans Git : tout va dans `.env.local` (et `.env.example` sans valeurs). Les appels Gemini et SasPay se font uniquement côté serveur.
 2. Fonds d'invitation : uniquement des fonds et ornements, SANS AUCUN TEXTE dans l'image. Prénoms, dates et lieux sont posés par-dessus en HTML/CSS. Pas de génération d'images par IA : on choisit parmi les 100 fonds prédessinés (style puis coloris).
 3. Paiement : une formule ne s'active que si le webhook SasPay est valide (signature HMAC-SHA256 de `${X-Webhook-Timestamp}.${corpsBrut}` avec `SASPAY_WEBHOOK_SECRET`, comparaison en temps constant, horodatage de moins de 5 min), traité une seule fois par `data.id`, ET si l'API SasPay confirme le statut `SUCCESS`. Jamais sur le seul retour du navigateur. Montants en chaînes décimales (`"4900.00"`).
-4. SasPay n'a pas de mode test fiable : les clés de test peuvent débiter de l'argent réel. Prévenir avant tout test de paiement et utiliser 100 à 200 FCFA.
+4. SasPay n'a pas de mode test fiable : les clés de test peuvent débiter de l'argent réel. Prévenir avant tout test de paiement et utiliser 200 FCFA (SasPay refuse moins).
 5. Sécurité par ligne (RLS) sur toutes les tables : un organisateur ne voit que ses événements ; le public peut seulement lire un événement publié et créer une réponse RSVP.
 6. Pages d'invitation : slug non devinable, `noindex`.
 7. Pas de faux chiffres ni de faux témoignages en production : les statistiques et avis de la maquette sont des exemples, affichés seulement si un réglage l'autorise.

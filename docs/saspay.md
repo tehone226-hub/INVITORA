@@ -33,7 +33,7 @@ Il n'y a pas de champ pour choisir le réseau : le client choisit Orange Money o
 5. L'activation est une seule transaction SQL (`activate_payment`) : paiement `paid`, formule posée, durée prolongée de 3 mois. Elle est idempotente.
 6. Les sessions SasPay expirent après 2 h. Un paiement déjà ouvert pour la même invitation et la même formule est repris, pas dupliqué ; au plus 5 paiements ouverts par heure et par utilisateur.
 7. Le retour du navigateur (`/paiement/retour`) n'active jamais rien.
-8. Montant de test : `SASPAY_TEST_AMOUNT_XOF` force un petit montant (règle 4). Un bandeau rouge s'affiche dans l'administration tant qu'il est défini.
+8. Montant de test : `SASPAY_TEST_AMOUNT_XOF` force un petit montant (règle 4). **SasPay refuse moins de 200 XOF** (constaté le 17 novembre 2026 : « Le montant minimum est de 200 XOF ») ; un montant de test plus bas est relevé à 200. Un bandeau rouge s'affiche dans l'administration tant qu'il est défini.
 
 ## Points à confirmer avec SasPay
 - ✅ Codes réseau confirmés le 17 novembre 2026 avec `GET /networks/` et la clé réelle : `orange_bf`, `moov_bf` (et `touchcash_bf`), tous actifs.

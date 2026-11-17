@@ -10,7 +10,7 @@
 | 100 fonds d'invitation (10 styles × 10 coloris) | ✅ dessinés par nous, dans le site |
 | Textes par l'IA (Gemini) | ✅ clé en place, modèle `gemini-3.5-flash-lite` |
 | Images par l'IA | ⛔ abandonnées : on choisit parmi les 100 fonds |
-| Paiement SasPay | ✅ clé API et secret du webhook en place (locale et production). ⚠️ Montant de test actif : `SASPAY_TEST_AMOUNT_XOF=100`, à retirer après le premier paiement réussi |
+| Paiement SasPay | ✅ clé API et secret du webhook en place (locale et production). ⚠️ Montant de test actif : `SASPAY_TEST_AMOUNT_XOF=200`, à retirer après le premier paiement réussi |
 | Envoi des e-mails de connexion | ⚠️ expéditeur partagé de Neon : à remplacer avant l'ouverture au public |
 
 Le site fonctionne sans les clés « à ajouter » : textes types si Gemini est indisponible, pas de paiement.
@@ -74,7 +74,7 @@ Il lit `DATABASE_URL` dans `.env.local` et n'applique chaque fichier qu'une seul
 
 ## 5. Paiement (SasPay)
 
-> ⚠️ **Règle 4** : SasPay n'a pas de mode test fiable. Même avec une clé de test, **un vrai paiement peut être débité**. Avant tout essai, mettez `SASPAY_TEST_AMOUNT_XOF=100` dans `.env.local` (et en production pour tester là-bas) : tous les paiements coûtent alors 100 FCFA. Retirez cette variable ensuite.
+> ⚠️ **Règle 4** : SasPay n'a pas de mode test fiable. Même avec une clé de test, **un vrai paiement peut être débité**. Avant tout essai, mettez `SASPAY_TEST_AMOUNT_XOF=200` dans `.env.local` (et en production pour tester là-bas) : tous les paiements coûtent alors 200 FCFA, le minimum accepté par SasPay. Retirez cette variable ensuite.
 
 1. Dans le tableau de bord SasPay (https://app.saspay.me), créez une clé API avec le droit **PAYIN** → `SASPAY_SECRET_KEY`.
 2. Créez un webhook :
