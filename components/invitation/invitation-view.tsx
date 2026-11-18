@@ -26,8 +26,9 @@ export function InvitationView({ event, children, actions }: { event: EventRow; 
         place={event.city ?? undefined}
         heading="h1"
         eager
+        sealed
         sizes="(min-width: 480px) 448px, 100vw"
-        className="aspect-[4/5] rounded-2xl shadow-float"
+        className="aspect-[9/16] rounded-2xl shadow-float"
       />
 
       <div className="mt-4 rounded-2xl border border-ink/8 bg-white px-5 pt-7 pb-7 sm:px-7">

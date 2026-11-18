@@ -159,3 +159,49 @@
     color: transparent;
   }
 }
+
+/* Enveloppe scellée de la page invité : deux moitiés qui s'écartent quand la case (invisible) est cochée.
+   Fonctionne sans JavaScript ; voir components/invitation-card.tsx. */
+.envelope-left,
+.envelope-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.2%;
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  transition: transform 1.2s cubic-bezier(0.7, 0, 0.2, 1);
+}
+.envelope-left {
+  left: 0;
+  background-position: left center;
+}
+.envelope-right {
+  right: 0;
+  background-position: right center;
+}
+.envelope-hint {
+  transition: opacity 0.3s;
+}
+.envelope-toggle:checked + .envelope {
+  pointer-events: none;
+}
+.envelope-toggle:checked + .envelope .envelope-left {
+  transform: translateX(-102%);
+}
+.envelope-toggle:checked + .envelope .envelope-right {
+  transform: translateX(102%);
+}
+.envelope-toggle:checked + .envelope .envelope-hint {
+  opacity: 0;
+}
+.envelope-toggle:focus-visible + .envelope {
+  outline: 3px solid var(--brand);
+  outline-offset: -3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .envelope-left,
+  .envelope-right {
+    transition: none;
+  }
+}

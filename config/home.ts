@@ -9,7 +9,7 @@ import type { ThemeId } from "./themes";
 export const steps: { title: string; text: string }[] = [
   {
     title: "Choisissez l'événement",
-    text: "Mariage, baptême, anniversaire, funérailles… puis un style et un coloris parmi les modèles.",
+    text: "Mariage, baptême, anniversaire, funérailles… puis un fond parmi les modèles.",
   },
   {
     title: "Indiquez l'essentiel",
@@ -51,7 +51,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Awa & Moussa",
     date: "samedi 12 décembre 2026",
     place: "Jardin des Manguiers • Ouagadougou",
-    theme: "feuillage--ivoire",
+    theme: "jardin--ivoire",
   },
   {
     id: "anniversaire-fatou",
@@ -60,7 +60,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Fatou a 30 ans",
     date: "samedi 19 décembre 2026",
     place: "Terrasse Le Baobab • Bobo-Dioulasso",
-    theme: "confettis--rose",
+    theme: "vannerie--indigo",
   },
   {
     id: "bapteme-nafissa",
@@ -69,7 +69,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Bienvenue Nafissa",
     date: "dimanche 10 janvier 2027",
     place: "Cour familiale • Koudougou",
-    theme: "aura--azur",
+    theme: "arche--florale",
   },
   {
     id: "funerailles-kone",
@@ -78,7 +78,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Hommage à Papa Koné",
     date: "samedi 16 janvier 2027",
     place: "Cérémonie • Ouahigouya",
-    theme: "epure--cendre",
+    theme: "vannerie--sable",
   },
   {
     id: "entreprise-gala",
@@ -87,7 +87,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Gala de fin d'année",
     date: "vendredi 18 décembre 2026",
     place: "Salle des fêtes • Ouagadougou",
-    theme: "deco--nuit",
+    theme: "vannerie--cacao",
   },
   {
     id: "dot-mariam-seydou",
@@ -96,7 +96,7 @@ export const templateExamples: TemplateExample[] = [
     names: "Mariam & Seydou",
     date: "samedi 9 janvier 2027",
     place: "Cour familiale • Bamako",
-    theme: "arche--argile",
+    theme: "vannerie--zebu",
   },
 ];
 
@@ -106,5 +106,5 @@ export const heroInvitation = {
   names: "Aminata & Ibrahim",
   date: "samedi 12 décembre 2026",
   city: "Ouagadougou",
-  theme: "feuillage--ivoire" as ThemeId,
+  theme: "jardin--ivoire" as ThemeId,
 };

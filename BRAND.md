@@ -87,22 +87,25 @@ Règles :
 - Dates : « samedi 14 décembre 2026 ». Montants : « 4 900 FCFA » (espace insécable).
 - Messages d'erreur : expliquer et proposer une solution (« Le lien n'a pas pu être envoyé. Vérifiez votre connexion et réessayez. »).
 
-## 7. Les invitations : 10 styles × 10 coloris
+## 7. Les invitations : 11 fonds et 4 enveloppes
 
-Collection « Papier Silencieux » (philosophie : `design/art/philosophie-visuelle.md`), en vigueur depuis le 17 novembre 2026. Elle remplace les étoffes (Faso Dan Fani, bogolan, wax…), retirées parce qu'elles évoquaient des tapis. L'esprit est celui d'une papeterie de mariage haut de gamme : beaucoup d'air, décor dans les marges et les coins, grain de papier fin, deux ou trois tons et un filet métallique.
+Depuis le 17 novembre 2026, les fonds sont les images choisies par le porteur du projet (sources : `design/fonds-sources/`). Elles remplacent les collections dessinées auparavant (étoffes, puis papeterie), supprimées.
 
-**Règles de dessin**
-- Aucun texte dans l'image. Les textes sont posés en HTML **directement sur le fond**, centrés, sans panneau ni cadre : le centre de chaque fond reste calme.
-- Jamais de bordure de motifs répétés, de cadre épais, de médaillon central ni de symétrie de tapis.
-- Typographie de l'invitation (`components/invitation-card.tsx`) : catégorie en petites capitales espacées (couleur d'accent), prénoms en **Cormorant Garamond** italique (`font-invite`), filets fins, date et lieu en Plus Jakarta Sans. Les tailles suivent la taille de la carte.
+**Les 11 fonds** (`config/themes.ts`) : Jardin ivoire, Arche florale, Dentelle grenat, Satin bordeaux, Broderie rouge, Vannerie sable, Vannerie cacao, Vannerie indigo, Vannerie et zébu, Indigo et marmites, Indigo et zébu. Format 9:16 (720 × 1280, WebP).
 
-**Les 10 styles** : Aura (halos de couleur), Arche (arches et soleil en aplats), Feuillage (branches à l'aquarelle), Art déco (filets dorés en éventail), Marbre (veine dorée), Ondes (lignes fines), Confettis (fête), Nuit étoilée (étoiles et croissant de lune), Sahel (soleil bas, acacias, baobab), Épure (un filet, un ornement).
+**Les 4 enveloppes** : chaque fond a une enveloppe scellée (sceau rouge, sceau doré, portes aux arums, cygnes). L'invité la voit d'abord et la touche pour l'ouvrir : les deux moitiés s'écartent et découvrent l'invitation. L'ouverture est en CSS pur (elle marche sans JavaScript).
 
-**Les 10 coloris** (`config/theme-palettes.json`, lu par le site et par le générateur) : Ivoire, Rose poudré, Sauge, Argile, Azur, Lavande, Nuit, Émeraude, Bordeaux (ces trois derniers sont sombres, texte clair), Cendre (sobre, pour les cérémonies de deuil). Chaque palette fixe le fond, trois tons, un métal, la couleur du texte et une couleur d'accent lisible (contraste vérifié par un test).
+**Règles**
+- Aucun texte dans l'image (règle 2 de `CLAUDE.md`) : les images reçues qui portaient un texte ou un filigrane n'ont pas été retenues.
+- Le texte est posé en HTML dans la **zone libre** de chaque fond (`zone`, en % : haut, droite, bas, gauche), sans panneau. La typographie se cale sur la taille de la zone ; dans une petite zone, seuls la catégorie, les prénoms et la date sont affichés.
+- Typographie de l'invitation (`components/invitation-card.tsx`) : catégorie en petites capitales espacées (couleur d'accent), prénoms en **Cormorant Garamond** italique (`font-invite`), date et lieu en Plus Jakarta Sans.
+- Un test vérifie que chaque image existe, pèse moins de 200 Ko, et que le texte reste lisible sur la zone (contraste).
 
-**Fabrication** : `npm run art` (`scripts/generate-theme-art.mjs`, styles dans `scripts/art-styles.mjs`). Dessin vectoriel programmé à partir de la palette, rendu en WebP 800 × 1000 : `public/demo/themes/<style>--<coloris>.webp` (≈ 21 Ko chacun).
+**Ajouter ou remplacer un fond** : déposez l'image dans `design/fonds-sources/`, déclarez-la dans `scripts/prepare-fonds.mjs` et dans `config/themes.ts` (même identifiant, même zone), puis lancez `npm run fonds`. La commande affiche la couleur de la zone de texte à reporter dans `config/themes.ts`.
 
-**Choix par défaut selon l'événement** : mariage → Feuillage Ivoire ; dot → Arche Argile ; baptême → Aura Azur ; anniversaire → Confettis Rose poudré ; funérailles → Épure Cendre ; entreprise → Art déco Nuit ; soutenance → Ondes Azur.
+**Droits d'auteur** : ces images viennent de Pinterest. Avant l'ouverture au public, il faut vérifier pour chacune qu'on a le droit de l'utiliser dans un service payant, ou la remplacer par une image achetée, sous licence libre ou créée pour Invitora.
+
+**Choix par défaut selon l'événement** : mariage → Jardin ivoire ; dot → Vannerie et zébu ; baptême → Arche florale ; anniversaire → Vannerie indigo ; funérailles → Vannerie sable ; entreprise → Vannerie cacao ; soutenance → Indigo et marmites.
 
 ## 8. Logo
 - Signe : carré violet (`brand`) aux angles arrondis, avec un « i » blanc dont le point est une étincelle mangue à quatre branches.

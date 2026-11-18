@@ -7,9 +7,9 @@
 | Base de données Neon `invitora` (Francfort) | ✅ créée, schéma appliqué, sécurité par ligne active |
 | Connexion Neon Auth (code par e-mail + Google) | ✅ active |
 | Site en ligne sur Vercel | ✅ https://invitora-theta.vercel.app |
-| 100 fonds d'invitation (10 styles × 10 coloris) | ✅ nouvelle collection « papeterie » du 17 novembre 2026, dessinée par nous |
+| 11 fonds d'invitation et 4 enveloppes scellées | ✅ images fournies par vous (droits d'utilisation à vérifier avant l'ouverture au public) |
 | Textes par l'IA (Gemini) | ✅ clé en place, modèle `gemini-3.5-flash-lite` |
-| Images par l'IA | ⛔ abandonnées : on choisit parmi les 100 fonds |
+| Images par l'IA | ⛔ abandonnées : on choisit parmi les 11 fonds |
 | Paiement SasPay | ✅ clé API et secret du webhook en place (locale et production). ⚠️ Montant de test actif : `SASPAY_TEST_AMOUNT_XOF=200`, à retirer après le premier paiement réussi |
 | Envoi des e-mails de connexion | ⚠️ expéditeur partagé de Neon : à remplacer avant l'ouverture au public |
 
@@ -67,7 +67,7 @@ Il lit `DATABASE_URL` dans `.env.local` et n'applique chaque fichier qu'une seul
 ## 4. Textes par l'IA (Gemini) et fonds d'invitation
 
 - **Textes** : Gemini rédige le titre, le message et le programme (`gemini-3.5-flash-lite`, puis `gemini-3.1-flash-lite` en secours, puis des textes types). Limite : 15 textes par utilisateur et par jour. La clé est dans `GEMINI_API_KEY` (locale et production).
-- **Fonds** : 100 fonds prêts (10 styles × 10 coloris), sans texte. Pour en refaire ou en ajouter : modifiez `scripts/art-styles.mjs` (dessins) ou `config/theme-palettes.json` (couleurs) puis `npm run art`. Aucune clé n'est nécessaire.
+- **Fonds** : 11 fonds et 4 enveloppes, sans texte, à partir de vos images (`design/fonds-sources/`). Pour en ajouter : voir la section 7 de `BRAND.md`, puis `npm run fonds`. Aucune clé n'est nécessaire.
 - Il n'y a plus de génération d'images par IA. L'espace Vercel Blob `invitora-images` créé plus tôt n'est plus utilisé : vous pouvez le supprimer (Vercel → Storage).
 
 ---

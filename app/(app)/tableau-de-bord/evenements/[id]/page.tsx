@@ -105,7 +105,7 @@ async function EventDashboard({ params, searchParams }: PageProps<"/tableau-de-b
             date={event.starts_at ? formatDate(event.starts_at) : undefined}
             place={event.city ?? undefined}
             sizes="360px"
-            className="aspect-[4/5] rounded-2xl border border-ink/10"
+            className="aspect-[9/16] rounded-2xl border border-ink/10"
           />
 
           <p className="text-center text-sm text-ink/60">

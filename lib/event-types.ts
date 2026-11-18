@@ -2,14 +2,14 @@ import type { ThemeId } from "@/config/themes";
 import type { EventType, InvitationLanguage } from "@/lib/types";
 
 export const EVENT_TYPES: { id: EventType; label: string; defaultTheme: ThemeId }[] = [
-  { id: "mariage", label: "Mariage", defaultTheme: "feuillage--ivoire" },
-  { id: "dot", label: "Dot", defaultTheme: "arche--argile" },
-  { id: "bapteme", label: "Baptême", defaultTheme: "aura--azur" },
-  { id: "anniversaire", label: "Anniversaire", defaultTheme: "confettis--rose" },
-  { id: "funerailles", label: "Funérailles", defaultTheme: "epure--cendre" },
-  { id: "entreprise", label: "Événement d'entreprise", defaultTheme: "deco--nuit" },
-  { id: "soutenance", label: "Soutenance", defaultTheme: "ondes--azur" },
-  { id: "autre", label: "Autre fête", defaultTheme: "aura--lavande" },
+  { id: "mariage", label: "Mariage", defaultTheme: "jardin--ivoire" },
+  { id: "dot", label: "Dot", defaultTheme: "vannerie--zebu" },
+  { id: "bapteme", label: "Baptême", defaultTheme: "arche--florale" },
+  { id: "anniversaire", label: "Anniversaire", defaultTheme: "vannerie--indigo" },
+  { id: "funerailles", label: "Funérailles", defaultTheme: "vannerie--sable" },
+  { id: "entreprise", label: "Événement d'entreprise", defaultTheme: "vannerie--cacao" },
+  { id: "soutenance", label: "Soutenance", defaultTheme: "shweshwe--marmites" },
+  { id: "autre", label: "Autre fête", defaultTheme: "dentelle--grenat" },
 ];
 
 export const eventTypeLabel = (id: EventType) => EVENT_TYPES.find((t) => t.id === id)?.label ?? "Événement";

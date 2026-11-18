@@ -15,7 +15,7 @@ Le porteur du projet débute en programmation : explique simplement ce que tu fa
 - Next.js (App Router, TypeScript), Tailwind CSS, shadcn/ui.
 - Neon : base PostgreSQL avec RLS (API de données Neon, rôle authenticated + auth.uid()), Neon Auth (Better Auth : code à 6 chiffres par e-mail + Google), actualisation automatique des réponses RSVP (toutes les 8 s). Opérations de confiance côté serveur par connexion SQL directe (DATABASE_URL). Images générées : Vercel Blob.
 - Texte IA : API Gemini via `@google/genai`, modèle `gemini-3.5-flash-lite` (secours : `gemini-3.1-flash-lite`), sortie JSON validée par Zod, côté serveur uniquement. Textes types intégrés si Gemini est indisponible.
-- Images : AUCUNE génération par IA. Les fonds d'invitation sont 100 images dessinées par nous (10 styles × 10 coloris : `config/themes.ts`, `scripts/generate-theme-art.mjs`, `public/demo/themes/`), légères et sans texte.
+- Images : AUCUNE génération par IA. Les fonds d'invitation sont 11 images fournies par le porteur du projet, plus 4 enveloppes scellées (`config/themes.ts`, `scripts/prepare-fonds.mjs`, sources dans `design/fonds-sources/`). Droits d'utilisation à vérifier avant l'ouverture au public.
 - Paiement : SasPay (https://docs.saspay.me/), Orange Money `orange_bf`, Moov Money `moov_bf`, carte. Page de paiement hébergée (checkout session).
 - Hébergement : Vercel. Code : GitHub.
 

@@ -1,53 +1,57 @@
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { COLORWAYS, DEFAULT_THEME, LEGACY_THEMES, STYLES, THEMES, THEME_IDS, getTheme, isThemeId } from "@/config/themes";
+import { DEFAULT_THEME, LEGACY_THEMES, THEMES, THEME_IDS, getTheme, isThemeId } from "@/config/themes";
 import { EVENT_TYPES } from "@/lib/event-types";
 import { templateExamples, heroInvitation } from "@/config/home";
 
-describe("100 fonds d'invitation", () => {
-  it("10 styles × 10 coloris = 100 fonds uniques", () => {
-    expect(STYLES).toHaveLength(10);
-    expect(COLORWAYS).toHaveLength(10);
-    expect(THEME_IDS).toHaveLength(100);
-    expect(new Set(THEME_IDS).size).toBe(100);
+describe("fonds d'invitation", () => {
+  it("11 fonds uniques, au format « collection--nom » accepté par la base", () => {
+    expect(THEME_IDS).toHaveLength(11);
+    expect(new Set(THEME_IDS).size).toBe(11);
+    for (const id of THEME_IDS) expect(id).toMatch(/^[a-z]+(-[a-z]+)*--[a-z]+$/);
   });
 
-  it("chaque fond a son image légère sur le disque (sans texte intégré : voir philosophie visuelle)", () => {
+  it("chaque fond et chaque enveloppe a son image légère sur le disque (sans texte intégré)", () => {
     for (const id of THEME_IDS) {
-      const file = path.join(process.cwd(), "public", THEMES[id].image);
-      expect(existsSync(file), `${id} : image manquante`).toBe(true);
-      expect(statSync(file).size, `${id} : image trop lourde`).toBeLessThan(200 * 1024);
+      for (const image of [THEMES[id].image, THEMES[id].cover.image]) {
+        const file = path.join(process.cwd(), "public", image);
+        expect(existsSync(file), `${id} : ${image} manquante`).toBe(true);
+        expect(statSync(file).size, `${id} : ${image} trop lourde`).toBeLessThan(200 * 1024);
+      }
     }
   });
 
-  it("couleurs au format #rrggbb et texte d'accent plus sombre que le fond", () => {
+  it("zone de texte valide et assez grande", () => {
     for (const id of THEME_IDS) {
-      expect(THEMES[id].color).toMatch(/^#[0-9a-f]{6}$/);
-      expect(THEMES[id].colors.accent).toMatch(/^#[0-9a-f]{6}$/);
+      const [top, right, bottom, left] = THEMES[id].zone;
+      expect(100 - left - right, id).toBeGreaterThanOrEqual(45);
+      expect(100 - top - bottom, id).toBeGreaterThanOrEqual(18);
+      for (const v of THEMES[id].zone) expect(v, id).toBeGreaterThanOrEqual(0);
     }
   });
 
-  it("texte et accent lisibles sur le fond de chaque coloris (contraste ≥ 4,5)", () => {
+  it("texte et accent lisibles sur la zone de texte de chaque fond (contraste ≥ 7 et ≥ 4,5)", () => {
     const lum = (hex: string) => {
       const c = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
       return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     };
     const contrast = (a: string, b: string) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
-    for (const cw of COLORWAYS) {
-      const t = THEMES[`epure--${cw.id}`];
-      expect(contrast(t.colors.text, t.color), `${cw.id} : texte`).toBeGreaterThanOrEqual(7);
-      expect(contrast(t.colors.accent, t.color), `${cw.id} : accent`).toBeGreaterThanOrEqual(4.5);
+    for (const id of THEME_IDS) {
+      const th = THEMES[id];
+      expect(th.color).toMatch(/^#[0-9a-f]{6}$/);
+      expect(th.colors.accent).toMatch(/^#[0-9a-f]{6}$/);
+      expect(contrast(th.colors.text, th.color), `${id} : texte`).toBeGreaterThanOrEqual(7);
+      expect(contrast(th.colors.accent, th.color), `${id} : accent`).toBeGreaterThanOrEqual(4.5);
     }
   });
 
   it("identifiants valides, repli sur le fond par défaut, anciens identifiants convertibles", () => {
-    expect(isThemeId("deco--nuit")).toBe(true);
+    expect(isThemeId("vannerie--zebu")).toBe(true);
     expect(isThemeId("wax--braise")).toBe(false);
-    // Une invitation créée avec une ancienne étoffe reçoit le fond correspondant de la nouvelle collection
-    expect(getTheme("wax--braise").id).toBe("confettis--rose");
-    expect(getTheme("faso-dan-fani").id).toBe("feuillage--ivoire");
-    expect(isThemeId("wax")).toBe(false);
+    // Une invitation créée avec un fond d'une ancienne collection reçoit un fond de la collection actuelle
+    expect(getTheme("wax--braise").id).toBe("vannerie--indigo");
+    expect(getTheme("feuillage--ivoire").id).toBe("jardin--ivoire");
     expect(isThemeId("constructor")).toBe(false);
     expect(isThemeId("__proto__")).toBe(false);
     expect(getTheme("n'importe-quoi").id).toBe(DEFAULT_THEME);
@@ -56,7 +60,7 @@ describe("100 fonds d'invitation", () => {
   });
 
   it("tous les fonds utilisés par l'application existent", () => {
-    for (const t of EVENT_TYPES) expect(isThemeId(t.defaultTheme), t.id).toBe(true);
+    for (const ev of EVENT_TYPES) expect(isThemeId(ev.defaultTheme), ev.id).toBe(true);
     for (const ex of templateExamples) expect(isThemeId(ex.theme), ex.id).toBe(true);
     expect(isThemeId(heroInvitation.theme)).toBe(true);
   });

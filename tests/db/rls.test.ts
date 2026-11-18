@@ -150,11 +150,11 @@ describe("événements : cloisonnement", () => {
   });
 });
 
-describe("fonds d'invitation (100)", () => {
+describe("fonds d'invitation", () => {
   it("fond par défaut à la création", async () => {
     const id = await createEvent(A, "fond-defaut-aaaa-0060");
     const rows = await as<{ theme: string }>(A, "select theme from public.events where id = $1", [id]);
-    expect(rows[0].theme).toBe("feuillage--ivoire");
+    expect(rows[0].theme).toBe("jardin--ivoire");
   });
 
   it("accepte un fond « style--coloris »", async () => {

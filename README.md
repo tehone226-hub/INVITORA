@@ -15,7 +15,7 @@ npm run dev      # lancer le site en local → http://localhost:3000
 npm run db:migrate  # appliquer le schéma sur la base Neon
 npm test         # 77 tests (sécurité de la base, paiement, formats)
 npm run build    # vérifier que tout compile
-npm run art      # régénérer les 100 fonds d'invitation (scripts/generate-theme-art.mjs)
+npm run fonds    # préparer les fonds d'invitation à partir de design/fonds-sources/ (scripts/prepare-fonds.mjs)
 ```
 
 ## Organisation

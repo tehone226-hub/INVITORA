@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "art": "node scripts/generate-theme-art.mjs",
+    "fonds": "node scripts/prepare-fonds.mjs",
     "test": "node scripts/test.mjs",
     "db:migrate": "node scripts/migrate.mjs"
   },
